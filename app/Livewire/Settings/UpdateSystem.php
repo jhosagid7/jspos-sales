@@ -118,6 +118,7 @@ class UpdateSystem extends Component
             $this->progress = 5;
             $this->progressStatus = 'Iniciando respaldo de seguridad...';
 
+            $this->dispatch('start-update-process', version: 'Manual (ZIP)');
             $this->dispatch('run-backup');
         } catch (\Exception $e) {
             $this->handleError($e);
@@ -132,6 +133,7 @@ class UpdateSystem extends Component
         $this->progress = 0;
         $this->progressStatus = 'Iniciando actualización...';
         
+        $this->dispatch('start-update-process', version: $this->newVersion);
         // Step 1: Backup
         $this->dispatch('run-backup');
     }
@@ -215,18 +217,17 @@ class UpdateSystem extends Component
         $this->status = 'done';
         
         $this->dispatch('noty', msg: 'Sistema actualizado correctamente a la versión ' . $this->newVersion);
-        
-        // Reload after a short delay
-        $this->dispatch('reload-page');
+        $this->dispatch('update-finished', version: $this->newVersion ?: $this->currentVersion);
     }
 
     public function rollbackToVersion($backupFolder)
     {
         $this->status = 'updating';
-        $this->progress = 30;
-        $this->progressStatus = 'Restaurando código fuente y base de datos...';
+        $this->progress = 10;
+        $this->progressStatus = 'Iniciando restauración de punto de recuperación...';
         $this->selectedBackupFolder = $backupFolder;
 
+        $this->dispatch('start-rollback-process', folder: $backupFolder);
         $this->dispatch('run-rollback');
     }
 
@@ -239,7 +240,7 @@ class UpdateSystem extends Component
             $this->status = 'done';
             
             $this->dispatch('noty', msg: 'Sistema restaurado correctamente a la versión anterior.');
-            $this->dispatch('reload-page');
+            $this->dispatch('rollback-finished');
         } catch (\Exception $e) {
             $this->handleError($e);
         }
@@ -261,6 +262,7 @@ class UpdateSystem extends Component
         $this->status = 'error';
         $this->progressStatus = 'Error: ' . $e->getMessage();
         $this->addError('update', $e->getMessage());
+        $this->dispatch('update-error', message: $e->getMessage());
     }
 
     public function loadLogs(UpdateService $updater)

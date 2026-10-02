@@ -52,12 +52,10 @@
                                             </button>
                                             @endcan
                                             @can('suppliers.delete')
-                                            @if(!$item->products()->exists())
                                             <button class="btn btn-light btn-sm"
-                                                onclick="Confirm('suppliers',{{ $item->id }})">
+                                                onclick="Confirm({{ $item->id }})" title="Eliminar proveedor">
                                                 <i class="fa fa-trash fa-2x"></i>
                                             </button>
-                                            @endif
                                             @endcan
                                         </div>
 
@@ -137,6 +135,28 @@
                   document.getElementById('inputFocus').focus()
                 })
             })
+
+        function Confirm(rowId) {
+            swal({
+                title: '¿CONFIRMAS ELIMINAR EL REGISTRO?',
+                text: "",
+                icon: "warning",
+                buttons: true,
+                dangerMode: true,
+                buttons: {
+                    cancel: "Cancelar",
+                    catch: {
+                        text: "Aceptar"
+                    }
+                },
+            }).then((willDestroy) => {
+                if (willDestroy) {
+                    Livewire.dispatch('Destroy', {
+                        id: rowId
+                    })
+                }
+            });
+        }
     </script>
 
     @endpush

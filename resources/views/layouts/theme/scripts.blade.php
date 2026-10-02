@@ -211,20 +211,61 @@
     // })
 
 
-    function Confirm(componentName, rowId) {          
-      Swal.fire({
-      title: '¿CONFIRMAS ELIMINAR EL REGISTRO?',
-      text: "",
-      showCancelButton: true,
-      confirmButtonColor: '#3085d6',
-      cancelButtonColor: '#d33',
-      confirmButtonText: 'Aceptar'
-      }).then((result) => {
-      if (result.value) {    
-          showProcessing()
-          window.livewire.emitTo(componentName, 'Destroy', rowId)
-      }
-      })
+    function Confirm(componentName, rowId) {
+        let id = rowId;
+        let comp = componentName;
+        if (arguments.length === 1) {
+            id = componentName;
+            comp = null;
+        }
+
+        const handleConfirm = () => {
+            if (typeof showProcessing === 'function') {
+                showProcessing();
+            }
+            if (comp && typeof Livewire.dispatchTo === 'function') {
+                Livewire.dispatchTo(comp, 'Destroy', { id: id });
+            } else if (typeof Livewire !== 'undefined') {
+                Livewire.dispatch('Destroy', { id: id });
+            }
+        };
+
+        if (typeof Swal !== 'undefined' && typeof Swal.fire === 'function') {
+            Swal.fire({
+                title: '¿CONFIRMAS ELIMINAR EL REGISTRO?',
+                text: "",
+                showCancelButton: true,
+                confirmButtonColor: '#3085d6',
+                cancelButtonColor: '#d33',
+                confirmButtonText: 'Aceptar',
+                cancelButtonText: 'Cancelar'
+            }).then((result) => {
+                if (result.value || result.isConfirmed) {
+                    handleConfirm();
+                }
+            });
+        } else if (typeof swal === 'function') {
+            swal({
+                title: '¿CONFIRMAS ELIMINAR EL REGISTRO?',
+                text: "",
+                icon: "warning",
+                buttons: {
+                    cancel: "Cancelar",
+                    catch: {
+                        text: "Aceptar"
+                    }
+                },
+                dangerMode: true,
+            }).then((willDestroy) => {
+                if (willDestroy) {
+                    handleConfirm();
+                }
+            });
+        } else {
+            if (confirm('¿CONFIRMAS ELIMINAR EL REGISTRO?')) {
+                handleConfirm();
+            }
+        }
     }
 
 

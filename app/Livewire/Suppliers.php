@@ -3,6 +3,7 @@
 namespace App\Livewire;
 
 use App\Models\Supplier;
+use Livewire\Attributes\On;
 use Livewire\Component;
 use Livewire\WithPagination;
 
@@ -130,20 +131,35 @@ class Suppliers extends Component
     }
 
 
-    public function Destroy(Supplier $supplier)
+    #[On('Destroy')]
+    public function Destroy($id)
     {
-        if ($supplier->products->count() > 0) {
-            $this->dispatchBrowserEvent('noty-error', ['msg' => 'NO SE PUEDE ELIMINAR EL PROVEEDOR PORQUE TIENE PRODUCTOS RELACIONADOS']);
-            return;
+        try {
+            $supplier = Supplier::find($id);
+
+            if (!$supplier) {
+                $this->dispatch('noty', msg: 'PROVEEDOR NO ENCONTRADO');
+                return;
+            }
+
+            if ($supplier->products()->exists()) {
+                $this->dispatch('noty', msg: 'NO SE PUEDE ELIMINAR EL PROVEEDOR PORQUE TIENE PRODUCTOS RELACIONADOS');
+                return;
+            }
+
+            if ($supplier->purchases()->exists()) {
+                $this->dispatch('noty', msg: 'NO SE PUEDE ELIMINAR EL PROVEEDOR PORQUE TIENE COMPRAS REGISTRADAS');
+                return;
+            }
+
+            // delete record from db
+            $supplier->delete();
+
+            $this->resetPage();
+
+            $this->dispatch('noty', msg: 'PROVEEDOR ELIMINADO CON ÉXITO');
+        } catch (\Exception $th) {
+            $this->dispatch('noty', msg: "ERROR AL ELIMINAR EL PROVEEDOR: {$th->getMessage()}");
         }
-
-        // delete record from db
-        $supplier->delete();
-
-        $this->resetPage();
-
-
-        $this->dispatchBrowserEvent('noty', ['msg' => 'PROVEEDOR ELIMINADO CON ÉXITO']);
-        $this->dispatchBrowserEvent('stop-loader');
     }
 }

@@ -1,3 +1,21 @@
+## [1.10.453] - 2026-10-02
+
+### Added & Enhanced (Modal Interactivo de Actualización en Vivo estilo Villasol)
+- **Modal Bloqueante de Actualización (`#modalActualizar`)**:
+  - `update-system.blade.php` & `UpdateSystem.php`: Implementado modal central con fondo bloqueado (`backdrop: static`) para evitar cierres accidentales e interferencias durante tareas críticas de actualización y migración.
+  - Encabezado con identidad azul y nube (`☁️ Actualización de Software en Curso`).
+  - **Fase de Progreso**: Subtítulo dinámico con spinner y texto de paso actual, barra animada de progreso a rayas (`progress-bar-striped progress-bar-animated`) con porcentaje dinámico.
+  - **Consola Terminal en Vivo (`>_ Registro de Operaciones`)**: Consola oscura `#1e1e1e` con timestamps `[HH:MM:SS]` y colores por estado (azul, verde, rojo) reportando paso a paso el respaldo preventivo, descarga/ZIP, instalación, migraciones y cachés.
+  - **Pantalla de Éxito Limpia**: Checkmark verde circular, mensaje con versión final instalada y botón prominente **🔄 Recargar Sistema** (`window.location.reload()`).
+  - Soporte integrado para actualizaciones automáticas desde GitHub, paquetes manuales ZIP y restauraciones por Rollback.
+
+### Fixed (Eliminación de Proveedores en Livewire 3)
+- **Corrección de Eventos y Manejador de Eliminación**:
+  - `suppliers.blade.php`: Actualizada la confirmación de SweetAlert para despachar `Livewire.dispatch('Destroy', { id })`, corrigiendo el fallo del botón de papelera que intentaba llamar al método obsoleto de Livewire 2 `window.livewire.emitTo`.
+  - `Suppliers.php`: Agregado el atributo `#[On('Destroy')]` al método `Destroy($id)` recibiendo el ID del registro, validación preventiva de productos o compras asociadas con notificación explicativa (`$this->dispatch('noty', ...)`), eliminando el método deprecado `dispatchBrowserEvent`.
+  - `Supplier.php`: Agregada la relación `purchases()` al modelo para verificar compras previas antes de intentar eliminar.
+  - `scripts.blade.php`: Modernizada la función global `Confirm` para compatibilidad universal con Livewire 3 y SweetAlert1/SweetAlert2.
+
 ## [1.10.452] - 2026-09-30
 
 ### Added & Enhanced (Soporte Nativo Nequi para Colombia en Flujo de Bancos)

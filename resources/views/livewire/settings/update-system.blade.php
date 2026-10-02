@@ -38,32 +38,21 @@
                                 </div>
                             </div>
                         @elseif($status === 'updating')
-                            <div class="alert alert-primary border-0 shadow-sm p-4">
-                                <h4 class="alert-heading text-primary font-weight-bold"><i class="fas fa-cog fa-spin me-2"></i> Procesando...</h4>
-                                <p class="mb-0">Por favor, no cierre esta ventana ni interrumpa el servidor.</p>
-                                <hr class="my-3">
-                                <div class="progress br-30 mb-3 bg-white" style="height: 22px; box-shadow: inset 0 1px 2px rgba(0,0,0,0.1);">
-                                    <div id="updater-progress-bar" class="progress-bar bg-warning progress-bar-striped progress-bar-animated" role="progressbar" style="width: {{ $progress }}%" aria-valuenow="{{ $progress }}" aria-valuemin="0" aria-valuemax="100">
-                                        <span id="updater-progress-text" class="text-dark font-weight-bold">{{ $progress }}%</span>
-                                    </div>
-                                </div>
-                                <p id="updater-progress-status" class="mb-0 text-center font-weight-bold text-dark fs-6">
-                                    {{ $progressStatus }}
-                                </p>
-                                <p id="updater-progress-sub" class="text-muted small text-center mt-2 mb-0">
-                                    @if($progress == 30)
-                                        <i class="fas fa-info-circle me-1"></i> Transfiriendo paquete desde GitHub (aprox. 67 MB). El tiempo de espera dependerá de la velocidad de su conexión a internet.
-                                    @elseif($progress == 60)
-                                        <i class="fas fa-cogs fa-spin me-1"></i> Descomprimiendo e instalando archivos en el servidor...
-                                    @elseif($progress == 80)
-                                        <i class="fas fa-database me-1"></i> Actualizando base de datos y secuencias...
-                                    @endif
-                                </p>
+                            <div class="alert alert-primary border-0 shadow-sm p-4 text-center">
+                                <h4 class="alert-heading text-primary font-weight-bold mb-2">
+                                    <i class="fas fa-cog fa-spin me-2"></i> Actualización en Curso...
+                                </h4>
+                                <p class="text-muted mb-0">Por favor, no cierre esta ventana ni interrumpa el servidor. La consola detallada de operaciones está activa en el modal emergente.</p>
                             </div>
                         @elseif($status === 'done')
-                            <div class="alert alert-success border-0 shadow-sm p-4">
-                                <h4 class="alert-heading text-success font-weight-bold"><i class="fas fa-check-circle me-2"></i> ¡Acción Completada!</h4>
-                                <p class="mb-0">La operación se completó exitosamente. El sistema se recargará en unos segundos.</p>
+                            <div class="alert alert-success border-0 shadow-sm p-4 text-center">
+                                <h4 class="alert-heading text-success font-weight-bold mb-2">
+                                    <i class="fas fa-check-circle me-2"></i> ¡Acción Completada!
+                                </h4>
+                                <p class="mb-3 text-muted">La operación se completó exitosamente.</p>
+                                <button type="button" class="btn btn-primary px-4 font-weight-bold" onclick="window.location.reload()">
+                                    <i class="fas fa-sync-alt me-2"></i> Recargar Sistema
+                                </button>
                             </div>
                         @elseif($status === 'error')
                             <div class="alert alert-danger border-0 shadow-sm p-4">
@@ -213,23 +202,135 @@
                     @endif
                 </div>
 
+                <!-- Modal de Actualización de Software en Curso (Estilo Villasol) -->
+                <div class="modal fade" id="modalActualizar" data-backdrop="static" data-keyboard="false" tabindex="-1" role="dialog" aria-hidden="true">
+                    <div class="modal-dialog modal-dialog-centered modal-lg" role="document">
+                        <div class="modal-content border-0 shadow-lg" style="border-radius: 6px; overflow: hidden;">
+                            <!-- Header con fondo azul y nube (Imagen 1 y 2) -->
+                            <div class="modal-header text-white py-3 px-4" style="background-color: #2b78b8 !important; border-bottom: none;">
+                                <h5 class="modal-title font-weight-bold d-flex align-items-center mb-0 text-white" style="font-size: 1.15rem; letter-spacing: 0.2px;">
+                                    <i class="fas fa-cloud me-2 text-white" style="font-size: 1.25rem; margin-right: 10px;"></i>
+                                    Actualización de Software en Curso
+                                </h5>
+                            </div>
+                            
+                            <div class="modal-body p-4" style="background-color: #ffffff;">
+                                <!-- 1. Pantalla de Progreso y Consola en Vivo (Imagen 1) -->
+                                <div id="modalProgreso">
+                                    <div class="d-flex align-items-center mb-3">
+                                        <h5 id="txtPasoActual" class="font-weight-bold mb-0 d-flex align-items-center" style="color: #2b78b8 !important; font-size: 1.1rem;">
+                                            <i id="iconoPasoSpinner" class="fas fa-circle-notch fa-spin me-2" style="margin-right: 8px; font-size: 1.2rem;"></i>
+                                            <span id="textoPasoSpinner">Iniciando actualización...</span>
+                                        </h5>
+                                    </div>
+
+                                    <!-- Barra de Carga Animada -->
+                                    <div class="progress mb-3" style="height: 28px; border-radius: 4px; background-color: #f0f2f5; box-shadow: inset 0 1px 2px rgba(0,0,0,0.1); overflow: hidden;">
+                                        <div id="barraProgreso" class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" style="width: 10%; font-weight: bold; font-size: 13px; line-height: 28px; background-color: #2b78b8 !important; transition: width 0.4s ease;" aria-valuenow="10" aria-valuemin="0" aria-valuemax="100">
+                                            10%
+                                        </div>
+                                    </div>
+
+                                    <!-- Terminal estilo consola -->
+                                    <div class="d-flex justify-content-between align-items-center mb-1">
+                                        <span class="text-muted font-weight-bold small">
+                                            &gt;_ Registro de Operaciones:
+                                        </span>
+                                        <span id="badgeEstadoTerminal" class="badge badge-light border text-muted small px-2 py-1">En ejecución</span>
+                                    </div>
+                                    <div id="consolaPasos" style="background: #1e1e1e; color: #a9b7c6; font-family: 'Consolas', 'Courier New', monospace; font-size: 13px; padding: 14px; border-radius: 5px; height: 180px; overflow-y: auto; line-height: 1.6; border: 1px solid #333; box-shadow: inset 0 2px 4px rgba(0,0,0,0.5);">
+                                        <!-- Líneas dinámicas generadas vía JS -->
+                                    </div>
+                                </div>
+
+                                <!-- 2. Pantalla de Éxito Final (Imagen 2) -->
+                                <div id="modalExito" style="display: none; text-align: center; padding: 25px 15px 15px 15px;">
+                                    <div class="mb-3">
+                                        <span class="d-inline-flex align-items-center justify-content-center" style="width: 80px; height: 80px; border-radius: 50%; background-color: #e8f5e9;">
+                                            <i class="fas fa-check-circle text-success" style="font-size: 55px; color: #28a745 !important;"></i>
+                                        </span>
+                                    </div>
+                                    <h3 class="text-dark font-weight-bold mb-2" style="font-size: 1.6rem;">¡Actualización Completada Exitosamente!</h3>
+                                    <p id="txtDetalleExito" class="text-muted mb-4" style="font-size: 1.05rem;">
+                                        ¡Sistema actualizado con éxito a la versión <strong class="text-dark">{{ $newVersion ?? $currentVersion }}</strong>!
+                                    </p>
+                                    
+                                    <div class="mt-4 pt-2">
+                                        <button type="button" id="btnRecargar" class="btn btn-primary btn-block btn-lg font-weight-bold py-2 shadow-sm text-white" style="background-color: #2b78b8; border-color: #2b78b8; font-size: 1.1rem; border-radius: 4px;" onclick="window.location.reload()">
+                                            <i class="fas fa-sync-alt me-2" style="margin-right: 8px;"></i> Recargar Sistema
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <!-- 3. Pantalla de Error (en caso de fallo) -->
+                                <div id="modalError" style="display: none; text-align: center; padding: 20px 15px;">
+                                    <div class="mb-3">
+                                        <span class="d-inline-flex align-items-center justify-content-center" style="width: 75px; height: 75px; border-radius: 50%; background-color: #ffebee;">
+                                            <i class="fas fa-exclamation-triangle text-danger" style="font-size: 50px;"></i>
+                                        </span>
+                                    </div>
+                                    <h4 class="text-danger font-weight-bold mb-2">Ocurrió un Problema</h4>
+                                    <p id="txtDetalleError" class="text-muted small mb-3"></p>
+                                    <div class="text-start mb-3">
+                                        <span class="text-muted font-weight-bold small">&gt;_ Registro del error:</span>
+                                        <div id="consolaError" style="background: #1e1e1e; color: #f44747; font-family: monospace; font-size: 12px; padding: 10px; border-radius: 4px; max-height: 120px; overflow-y: auto;"></div>
+                                    </div>
+                                    <button type="button" class="btn btn-secondary px-4" data-dismiss="modal">
+                                        <i class="fas fa-times me-1"></i> Cerrar
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
                 <script>
                     document.addEventListener('livewire:initialized', () => {
                         $('.modal-backdrop').remove();
                         $('body').removeClass('modal-open');
 
-                        function updateBarUI(percent, statusText, subText, colorClass = 'bg-warning') {
-                            const bar = document.getElementById('updater-progress-bar');
-                            const text = document.getElementById('updater-progress-text');
-                            const status = document.getElementById('updater-progress-status');
-                            const sub = document.getElementById('updater-progress-sub');
-                            if (bar) {
-                                bar.style.width = percent + '%';
-                                bar.className = 'progress-bar progress-bar-striped progress-bar-animated ' + colorClass;
+                        function abrirModalActualizacion(titulo = 'Iniciando actualización...') {
+                            $('#modalProgreso').show();
+                            $('#modalExito').hide();
+                            $('#modalError').hide();
+                            $('#consolaPasos').empty();
+                            $('#consolaError').empty();
+                            $('#badgeEstadoTerminal').removeClass('badge-danger badge-success text-white').addClass('badge-light text-muted').text('En ejecución');
+                            $('#barraProgreso').removeClass('bg-success bg-danger bg-warning').addClass('bg-primary').css({'width': '5%', 'background-color': '#2b78b8'}).text('5%');
+                            $('#textoPasoSpinner').text(titulo);
+                            $('#modalActualizar').modal({
+                                backdrop: 'static',
+                                keyboard: false,
+                                show: true
+                            });
+                        }
+
+                        function agregarLog(texto, color = '#a9b7c6') {
+                            var now = new Date();
+                            var hora = now.toTimeString().split(' ')[0]; // HH:MM:SS
+                            $('#consolaPasos').append('<div style="color: ' + color + '; margin-bottom: 2px;">[' + hora + '] ' + texto + '</div>');
+                            var d = $('#consolaPasos');
+                            d.scrollTop(d.prop("scrollHeight"));
+                        }
+
+                        function updateProgreso(percent, textoSpinner, logTexto, logColor = '#a9b7c6', colorBarra = null) {
+                            if (percent) {
+                                $('#barraProgreso').css('width', percent + '%').text(percent + '%');
+                                if (colorBarra) {
+                                    $('#barraProgreso').removeClass('bg-primary bg-warning bg-danger bg-success').addClass(colorBarra);
+                                    if (colorBarra === 'bg-success') {
+                                        $('#barraProgreso').css('background-color', '#28a745');
+                                    } else if (colorBarra === 'bg-danger') {
+                                        $('#barraProgreso').css('background-color', '#dc3545');
+                                    }
+                                }
                             }
-                            if (text) text.innerText = percent + '%';
-                            if (status) status.innerText = statusText;
-                            if (sub && subText) sub.innerHTML = subText;
+                            if (textoSpinner) {
+                                $('#textoPasoSpinner').text(textoSpinner);
+                            }
+                            if (logTexto) {
+                                agregarLog(logTexto, logColor);
+                            }
                         }
 
                         let watchdogInterval = null;
@@ -248,48 +349,118 @@
                                         const liveVer = data.version ? data.version.replace('v', '').trim() : '';
                                         if (cleanExpected && liveVer === cleanExpected) {
                                             clearInterval(watchdogInterval);
-                                            updateBarUI(100, '¡Actualización completada exitosamente!', '<i class="fas fa-check-circle text-success me-1"></i> El sistema se ha instalado correctamente. Recargando...', 'bg-success');
+                                            updateProgreso(100, '¡Actualización completada!', '✓ Verificación en vivo: Sistema actualizado con éxito a v' + liveVer, '#4ec9b0', 'bg-success');
+                                            $('#badgeEstadoTerminal').removeClass('badge-light text-muted').addClass('badge-success text-white').text('Completado');
                                             setTimeout(() => {
-                                                window.location.reload();
-                                            }, 2500);
+                                                $('#modalProgreso').fadeOut(300, function() {
+                                                    $('#txtDetalleExito').html('¡Sistema actualizado con éxito a la versión <strong>v' + liveVer + '</strong>!');
+                                                    $('#modalExito').fadeIn(300);
+                                                });
+                                            }, 1200);
                                         }
                                     })
                                     .catch(() => {});
                             }, 5000);
                         }
 
+                        // Eventos de ciclo de actualización
+                        @this.on('start-update-process', (data) => {
+                            let ver = (data && data.version) ? data.version : '{{ $newVersion }}';
+                            abrirModalActualizacion('Iniciando actualización...');
+                            agregarLog('Iniciando proceso de actualización del sistema...', '#569cd6');
+                            startWatchdog(ver);
+                        });
+
+                        @this.on('start-rollback-process', (data) => {
+                            abrirModalActualizacion('Iniciando restauración...');
+                            agregarLog('Iniciando proceso de restauración del sistema...', '#569cd6');
+                        });
+
                         @this.on('run-backup', () => {
-                            updateBarUI(15, 'Creando copia de seguridad de la versión actual...', '<i class="fas fa-shield-alt me-1"></i> Respaldando base de datos y archivos antes de actualizar.');
+                            if (!$('#modalActualizar').hasClass('show')) {
+                                abrirModalActualizacion('Iniciando actualización...');
+                                agregarLog('Iniciando proceso de actualización del sistema...', '#569cd6');
+                            }
+                            updateProgreso(15, 'Generando respaldo preventivo...', 'Paso 1/5: Generando respaldo preventivo de base de datos...');
                             @this.call('runBackup');
                         });
+
                         @this.on('run-download', () => {
                             startWatchdog('{{ $newVersion }}');
-                            updateBarUI(30, 'Descargando paquete de actualización desde GitHub...', '<i class="fas fa-cloud-download-alt me-1"></i> Transfiriendo paquete (aprox. 67 MB). El tiempo depende de su conexión a internet. Por favor espere.');
+                            updateProgreso(35, 'Descargando paquete desde GitHub...', 'Paso 2/5: Descargando archivos actualizados desde GitHub...');
                             @this.call('download');
                         });
+
                         @this.on('run-install', () => {
                             startWatchdog('{{ $newVersion }}');
-                            updateBarUI(60, 'Descomprimiendo e instalando archivos en el servidor...', '<i class="fas fa-cogs fa-spin me-1"></i> Reemplazando archivos del sistema. Esto puede tomar un par de minutos mientras el servidor copia los archivos.');
+                            updateProgreso(65, 'Descomprimiendo e instalando...', 'Paso 3/5: Descomprimiendo e instalando archivos en el servidor...');
                             @this.call('install');
                         });
+
                         @this.on('run-migrate', () => {
-                            updateBarUI(80, 'Actualizando base de datos y secuencias...', '<i class="fas fa-database me-1"></i> Ejecutando migraciones automáticas y calibrando correlativos.');
+                            updateProgreso(85, 'Actualizando base de datos...', 'Paso 4/5: Verificando y aplicando migraciones de base de datos...');
                             @this.call('migrate');
                         });
+
                         @this.on('run-cleanup', () => {
-                            updateBarUI(90, 'Limpiando archivos temporales...', '<i class="fas fa-broom me-1"></i> Finalizando proceso de actualización.');
+                            updateProgreso(95, 'Limpiando archivos temporales y cachés...', 'Paso 5/5: Limpiando cachés de Laravel (vistas, rutas, configuración)...');
                             @this.call('cleanup');
                         });
+
                         @this.on('run-rollback', () => {
+                            updateProgreso(50, 'Restaurando código fuente y base de datos...', 'Paso 1/2: Restaurando código fuente y base de datos respaldada...');
                             @this.call('runRollback');
                         });
-                        @this.on('reload-page', () => {
+
+                        @this.on('update-finished', (data) => {
                             if (watchdogInterval) clearInterval(watchdogInterval);
-                            updateBarUI(100, '¡Actualización completada!', '<i class="fas fa-check-circle text-success me-1"></i> Sistema listo. Recargando...', 'bg-success');
+                            let ver = (data && data.version) ? data.version : '{{ $newVersion ?? $currentVersion }}';
+                            updateProgreso(100, '¡Actualización completada!', '✓ ¡Sistema actualizado con éxito a la versión ' + ver + '!', '#4ec9b0', 'bg-success');
+                            $('#badgeEstadoTerminal').removeClass('badge-light text-muted').addClass('badge-success text-white').text('Completado');
+
                             setTimeout(() => {
-                                window.location.reload();
+                                $('#modalProgreso').fadeOut(300, function() {
+                                    $('#txtDetalleExito').html('¡Sistema actualizado con éxito a la versión <strong>' + ver + '</strong>!');
+                                    $('#modalExito').fadeIn(300);
+                                });
+                            }, 1400);
+                        });
+
+                        @this.on('rollback-finished', () => {
+                            updateProgreso(100, '¡Restauración completada!', '✓ ¡Sistema restaurado correctamente a la versión anterior!', '#4ec9b0', 'bg-success');
+                            $('#badgeEstadoTerminal').removeClass('badge-light text-muted').addClass('badge-success text-white').text('Restaurado');
+
+                            setTimeout(() => {
+                                $('#modalProgreso').fadeOut(300, function() {
+                                    $('#txtDetalleExito').html('¡Sistema restaurado con éxito a la versión anterior!');
+                                    $('#modalExito').fadeIn(300);
+                                });
+                            }, 1400);
+                        });
+
+                        @this.on('update-error', (data) => {
+                            if (watchdogInterval) clearInterval(watchdogInterval);
+                            let err = (data && data.message) ? data.message : 'Error durante el proceso de actualización';
+                            updateProgreso(null, 'Error en el proceso', '✗ ERROR: ' + err, '#f44747', 'bg-danger');
+                            $('#badgeEstadoTerminal').removeClass('badge-light text-muted').addClass('badge-danger text-white').text('Fallido');
+                            $('#txtDetalleError').text(err);
+                            $('#consolaError').text(err);
+
+                            setTimeout(() => {
+                                $('#modalProgreso').fadeOut(300, function() {
+                                    $('#modalError').fadeIn(300);
+                                });
                             }, 2000);
                         });
+
+                        $('#btnRecargar').on('click', function() {
+                            window.location.reload();
+                        });
+
+                        @if($status === 'updating')
+                            abrirModalActualizacion('{{ $progressStatus ?: "Actualización en curso..." }}');
+                            updateProgreso({{ $progress ?: 10 }}, '{{ $progressStatus ?: "Actualización en curso..." }}', 'Reanudando vista de actualización en curso...');
+                        @endif
                     });
 
                     // Confirmation Dialogs using SweetAlert (v1 - the version loaded in this project)
