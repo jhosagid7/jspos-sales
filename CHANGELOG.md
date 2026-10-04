@@ -1,3 +1,13 @@
+## [1.10.460] - 2026-10-04
+
+### Fixed & Enhanced (Sincronización de Moneda en POS y Saneamiento Automático de Cobranza)
+- **Sincronización Automática de Moneda en Modal de Cobro Efectivo**:
+  - `Sales.php`: Sincronización automática de `$this->paymentCurrency` con la moneda activa de la factura (`$this->invoiceCurrency_id`) al abrir el modal de pago (`initPayment`) y al alternar divisas en el POS (`updatedInvoiceCurrencyId`).
+  - Validación defensiva preventiva en `addPayment`: Bloquea cobros erróneos en USD cuando la factura está en Bolívares (`VED`) y el monto ingresado coincide numéricamente con el total en moneda local.
+  - Corrección en el guardado de cobro simple en `Store`: Toma la moneda y tasa de cambio de la factura en lugar de asumir a ciegas USD con tasa 1.
+- **Saneamiento Automático de Base de Datos sin Terminal**:
+  - `2026_10_04_000001_fix_corrupted_usd_cash_payments.php`: Migración nativa que localiza y reclasifica automáticamente pagos en efectivo históricos registrados como USD con tasa 1 en ventas en moneda local, recalculando el importe en USD, el vuelto y la recaudación real para el Reporte de Cobranza por Operador (`SellerGroupedReport`).
+
 ## [1.10.459] - 2026-10-02
 
 ### Added & Enhanced (Nuevo Reporte de Rentabilidad y Precios Mensuales por Producto)

@@ -301,6 +301,7 @@ class Sales extends Component
             if ($currency) {
                 $this->invoiceExchangeRate = $currency->exchange_rate;
                 $this->displayCurrency = $currency;
+                $this->paymentCurrency = $currency->code;
                 session(['invoiceCurrency_id' => $value]);
 
                 // Recalcular precios del carrito al cambiar la moneda (Reglas de precio pueden variar)
@@ -598,6 +599,16 @@ class Sales extends Component
 
         // Convertir a USD (base) y luego a moneda principal
         $primaryCurrency = collect($this->currencies)->firstWhere('is_primary', 1);
+
+        // Validación defensiva: Evitar ingresar montos en Bolívares/moneda local teniendo el selector en USD
+        $invoiceCurr = $this->invoiceCurrency_id ? collect($this->currencies)->firstWhere('id', $this->invoiceCurrency_id) : null;
+        if ($invoiceCurr && in_array(strtoupper($invoiceCurr->code), ['VED', 'VES', 'COP']) && strtoupper($this->paymentCurrency) === 'USD') {
+            $totalInUSD = ($primaryCurrency && $primaryCurrency->exchange_rate > 0) ? ($this->totalCart / $primaryCurrency->exchange_rate) : $this->totalCart;
+            if ($this->paymentAmount > 50 && $totalInUSD < 20 && ($this->paymentAmount >= ($this->totalCartAtPayment * 0.5))) {
+                $this->dispatch('noty', msg: "ALERTA: El monto ingresado ({$this->paymentAmount}) parece estar en {$invoiceCurr->code} pero seleccionó USD. Cambie la moneda a {$invoiceCurr->code}.", type: 'error');
+                return;
+            }
+        }
         
         $rateToUse = $currency->exchange_rate;
         if (in_array(strtoupper($currency->code), ['VED', 'VES'])) {
@@ -3579,6 +3590,21 @@ class Sales extends Component
         if ($type == 1) $this->payTypeName = 'PAGO / ABONOS';
         if ($type == 2) $this->payTypeName = 'PAGO A CRÉDITO';
 
+        // Sincronizar automáticamente la moneda de pago con la moneda de la factura
+        if (empty($this->payments)) {
+            if ($this->invoiceCurrency_id) {
+                $invCurr = collect($this->currencies)->firstWhere('id', $this->invoiceCurrency_id);
+                if ($invCurr) {
+                    $this->paymentCurrency = $invCurr->code;
+                }
+            } elseif (!empty($this->currencies) && count($this->currencies) > 0) {
+                $primary = collect($this->currencies)->firstWhere('is_primary', true) ?? collect($this->currencies)->first();
+                if ($primary) {
+                    $this->paymentCurrency = $primary->code;
+                }
+            }
+        }
+
         
         
         // Calculate totals for payment modal based on selected invoice currency
@@ -4695,15 +4721,20 @@ class Sales extends Component
             } elseif ($type == 1) {
                 // Caso simple: pago efectivo sin desglose múltiple (legacy fallback)
                 $primaryCurrency = collect($this->currencies)->firstWhere('is_primary', 1);
-                $currencyCode = $primaryCurrency ? $primaryCurrency->code : 'COP';
-                
+                $currencyCode = $currencyCodeForInvoice ?? ($primaryCurrency ? $primaryCurrency->code : 'COP');
+                $exchangeRate = $exchangeRateForInvoice ?? ($primaryCurrency ? $primaryCurrency->exchange_rate : 1);
+
+                $amountInPrimary = ($exchangeRate > 0 && $currencyCode !== ($primaryCurrency->code ?? 'USD'))
+                    ? ($this->cashAmount / $exchangeRate)
+                    : $this->cashAmount;
+
                 SalePaymentDetail::create([
                     'sale_id' => $sale->id,
                     'payment_method' => 'cash',
                     'currency_code' => $currencyCode,
                     'amount' => $this->cashAmount,
-                    'exchange_rate' => 1,
-                    'amount_in_primary_currency' => $this->cashAmount,
+                    'exchange_rate' => $exchangeRate,
+                    'amount_in_primary_currency' => round($amountInPrimary, $decimals),
                 ]);
             } elseif ($type == 3) { // Depósito Bancario (Legacy)
                 $bank = $this->banks->where('id', $this->bank)->first();
@@ -4742,7 +4773,7 @@ class Sales extends Component
                     } else {
                         // Caso simple: pago efectivo sin desglose múltiple
                         $primaryCurrency = collect($this->currencies)->firstWhere('is_primary', 1);
-                        $currencyCode = $primaryCurrency ? $primaryCurrency->code : 'COP';
+                        $currencyCode = $currencyCodeForInvoice ?? ($primaryCurrency ? $primaryCurrency->code : 'COP');
                         
                         $cashRegisterService->recordSaleMovement(
                             $register->id,
