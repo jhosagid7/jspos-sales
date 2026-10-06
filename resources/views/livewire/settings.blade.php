@@ -1840,6 +1840,30 @@ Departamento de Control de Calidad y Manufactura
                                                         </div>
                                                         <small class="text-muted d-block ps-4">Muestra el código QR para clonar la venta con la app móvil.</small>
                                                     </div>
+
+                                                    <div class="col-md-6 col-lg-4">
+                                                        <div class="custom-control custom-switch">
+                                                            <input type="checkbox" class="custom-control-input" id="ticketSalesCondition" wire:model="ticketSettings.sales.show_sale_condition">
+                                                            <label class="custom-control-label" for="ticketSalesCondition">Condición de Venta</label>
+                                                        </div>
+                                                        <small class="text-muted d-block ps-4">Muestra la condición de pago (Contado o Crédito).</small>
+                                                    </div>
+
+                                                    <div class="col-md-6 col-lg-4">
+                                                        <div class="custom-control custom-switch">
+                                                            <input type="checkbox" class="custom-control-input" id="ticketSalesItemsHeader" wire:model="ticketSettings.sales.show_items_header">
+                                                            <label class="custom-control-label" for="ticketSalesItemsHeader">Encabezado de Artículos</label>
+                                                        </div>
+                                                        <small class="text-muted d-block ps-4">Muestra fila DESCRIPCIÓN, CANT y PRECIO.</small>
+                                                    </div>
+
+                                                    <div class="col-md-6 col-lg-4">
+                                                        <div class="custom-control custom-switch">
+                                                            <input type="checkbox" class="custom-control-input" id="ticketSalesCustomer" wire:model="ticketSettings.sales.show_customer">
+                                                            <label class="custom-control-label" for="ticketSalesCustomer">Datos del Cliente</label>
+                                                        </div>
+                                                        <small class="text-muted d-block ps-4">Muestra el nombre del cliente en el ticket.</small>
+                                                    </div>
                                                 </div>
                                             </div>
                                         </div>
@@ -1911,6 +1935,22 @@ Departamento de Control de Calidad y Manufactura
                                                             <label class="custom-control-label" for="ticketOrdersQr">Código QR (Scan para Clonar)</label>
                                                         </div>
                                                         <small class="text-muted d-block ps-4">Muestra el código QR para procesar el pedido.</small>
+                                                    </div>
+
+                                                    <div class="col-md-6 col-lg-4">
+                                                        <div class="custom-control custom-switch">
+                                                            <input type="checkbox" class="custom-control-input" id="ticketOrdersItemsHeader" wire:model="ticketSettings.orders.show_items_header">
+                                                            <label class="custom-control-label" for="ticketOrdersItemsHeader">Encabezado de Artículos</label>
+                                                        </div>
+                                                        <small class="text-muted d-block ps-4">Muestra fila DESCRIPCIÓN, CANT y PRECIO.</small>
+                                                    </div>
+
+                                                    <div class="col-md-6 col-lg-4">
+                                                        <div class="custom-control custom-switch">
+                                                            <input type="checkbox" class="custom-control-input" id="ticketOrdersCustomer" wire:model="ticketSettings.orders.show_customer">
+                                                            <label class="custom-control-label" for="ticketOrdersCustomer">Datos del Cliente</label>
+                                                        </div>
+                                                        <small class="text-muted d-block ps-4">Muestra el nombre del cliente en el pedido.</small>
                                                     </div>
                                                 </div>
                                             </div>

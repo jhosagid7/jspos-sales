@@ -155,8 +155,10 @@ trait PrintTrait
                 $printer->text("Folio: " . ($sale->invoice_number ?: $sale->id) . "\n");
                 $printer->text("Fecha: " . Carbon::parse($sale->created_at)->format('d/m/Y h:m:s') . "\n");
                 $printer->text("Cajero: " . $sale->user->name . " \n");
-                $condition = $sale->type == 'credit' ? 'CRÉDITO' : 'CONTADO';
-                $printer->text("Condición: " . $condition . "\n");
+                if ($config->getTicketSetting('sales', 'show_sale_condition', true)) {
+                    $condition = $sale->type == 'credit' ? 'CRÉDITO' : 'CONTADO';
+                    $printer->text("Condición: " . $condition . "\n");
+                }
                 //$printer->text("=============================================\n");
 
 
@@ -190,10 +192,14 @@ trait PrintTrait
                     $separator = "=============================================";
                 }
 
-                $headersName = sprintf($maskHead, 'DESCRIPCION', 'CANT', 'PRECIO');
-                $printer->text($separator . "\n");
-                $printer->text($headersName . "\n");
-                $printer->text($separator . "\n");
+                if ($config->getTicketSetting('sales', 'show_items_header', true)) {
+                    $headersName = sprintf($maskHead, 'DESCRIPCION', 'CANT', 'PRECIO');
+                    $printer->text($separator . "\n");
+                    $printer->text($headersName . "\n");
+                    $printer->text($separator . "\n");
+                } else {
+                    $printer->text($separator . "\n");
+                }
 
                 foreach ($sale->details as $item) {
 
@@ -209,7 +215,9 @@ trait PrintTrait
 
                 $printer->text($separator . "\n");
 
-                $printer->text("CLIENTE: " . $sale->customer->name  . "\n\n");
+                if ($config->getTicketSetting('sales', 'show_customer', true)) {
+                    $printer->text("CLIENTE: " . $sale->customer->name  . "\n\n");
+                }
 
 
                 $printer->setJustification(Printer::JUSTIFY_CENTER);
@@ -850,10 +858,14 @@ trait PrintTrait
                     $separator = "=============================================";
                 }
 
-                $headersName = sprintf($maskHead, 'DESCRIPCION', 'CANT', 'PRECIO');
-                $printer->text($separator . "\n");
-                $printer->text($headersName . "\n");
-                $printer->text($separator . "\n");
+                if ($config->getTicketSetting('orders', 'show_items_header', true)) {
+                    $headersName = sprintf($maskHead, 'DESCRIPCION', 'CANT', 'PRECIO');
+                    $printer->text($separator . "\n");
+                    $printer->text($headersName . "\n");
+                    $printer->text($separator . "\n");
+                } else {
+                    $printer->text($separator . "\n");
+                }
 
                 foreach ($order->details as $item) {
                     $descripcion_1 = $this->cortar($item->product->name, $col1Width);
@@ -868,7 +880,9 @@ trait PrintTrait
 
                 $printer->text($separator . "\n");
 
-                $printer->text("CLIENTE: " . $order->customer->name  . "\n\n");
+                if ($config->getTicketSetting('orders', 'show_customer', true)) {
+                    $printer->text("CLIENTE: " . $order->customer->name  . "\n\n");
+                }
 
                 $printer->setJustification(Printer::JUSTIFY_CENTER);
                 $printer->text("NO. DE ARTICULOS $order->items" . "\n");

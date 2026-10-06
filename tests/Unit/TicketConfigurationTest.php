@@ -27,6 +27,9 @@ class TicketConfigurationTest extends TestCase
         // Verify sales keys
         $this->assertTrue($defaults['sales']['auto_print']);
         $this->assertTrue($defaults['sales']['show_company_data']);
+        $this->assertTrue($defaults['sales']['show_sale_condition']);
+        $this->assertTrue($defaults['sales']['show_items_header']);
+        $this->assertTrue($defaults['sales']['show_customer']);
         $this->assertTrue($defaults['sales']['show_subtotal']);
         $this->assertTrue($defaults['sales']['show_tax']);
         $this->assertTrue($defaults['sales']['show_cash_change']);
@@ -36,6 +39,8 @@ class TicketConfigurationTest extends TestCase
 
         // Verify orders keys
         $this->assertTrue($defaults['orders']['show_company_data']);
+        $this->assertTrue($defaults['orders']['show_items_header']);
+        $this->assertTrue($defaults['orders']['show_customer']);
         $this->assertTrue($defaults['orders']['show_subtotal']);
         $this->assertTrue($defaults['orders']['show_tax']);
         $this->assertTrue($defaults['orders']['show_cash_change']);
@@ -112,6 +117,10 @@ class TicketConfigurationTest extends TestCase
         $this->assertFalse($config->getTicketSetting('sales', 'show_footer_message', true));
         $this->assertFalse($config->getTicketSetting('sales', 'show_website', true));
         $this->assertFalse($config->getTicketSetting('sales', 'show_qr', true));
+        // Default true when not specified in saved array
+        $this->assertTrue($config->getTicketSetting('sales', 'show_sale_condition', true));
+        $this->assertTrue($config->getTicketSetting('sales', 'show_items_header', true));
+        $this->assertTrue($config->getTicketSetting('sales', 'show_customer', true));
 
         $this->assertFalse($config->getTicketSetting('payments', 'show_company_data', true));
         $this->assertFalse($config->getTicketSetting('payments', 'show_debt', true));
@@ -119,6 +128,8 @@ class TicketConfigurationTest extends TestCase
 
         // Unconfigured types should still return the default
         $this->assertTrue($config->getTicketSetting('orders', 'show_company_data', true));
+        $this->assertTrue($config->getTicketSetting('orders', 'show_items_header', true));
+        $this->assertTrue($config->getTicketSetting('orders', 'show_customer', true));
         $this->assertTrue($config->getTicketSetting('cash_count', 'show_sales_breakdown', true));
     }
 
@@ -131,6 +142,7 @@ class TicketConfigurationTest extends TestCase
                 'business_name' => 'EMPRESA TEST',
                 'address' => 'CALLE 123',
                 'city' => 'CIUDAD',
+                'phone' => '123456789',
                 'taxpayer_id' => 'J-12345678',
                 'vat' => 16,
                 'decimals' => 2,
@@ -143,6 +155,7 @@ class TicketConfigurationTest extends TestCase
                 'business_name' => $config->business_name ?: 'EMPRESA TEST',
                 'address' => $config->address ?: 'CALLE 123',
                 'city' => $config->city ?: 'CIUDAD',
+                'phone' => $config->phone ?: '123456789',
                 'taxpayer_id' => $config->taxpayer_id ?: 'J-12345678',
                 'vat' => $config->vat ?: 16,
                 'decimals' => $config->decimals ?: 2,
@@ -156,6 +169,8 @@ class TicketConfigurationTest extends TestCase
         if (!$user) {
             $user = User::factory()->create();
         }
+        $role = \Spatie\Permission\Models\Role::firstOrCreate(['name' => 'Super Admin', 'guard_name' => 'web']);
+        $user->assignRole($role);
 
         $component = Livewire::actingAs($user)
             ->test(Settings::class)
@@ -166,10 +181,16 @@ class TicketConfigurationTest extends TestCase
         $this->assertIsArray($ticketSettings);
         $this->assertTrue($ticketSettings['sales']['auto_print']);
         $this->assertTrue($ticketSettings['sales']['show_company_data']);
+        $this->assertTrue($ticketSettings['sales']['show_sale_condition']);
+        $this->assertTrue($ticketSettings['sales']['show_items_header']);
+        $this->assertTrue($ticketSettings['sales']['show_customer']);
 
         // Toggle some settings
         $component->set('ticketSettings.sales.auto_print', false)
             ->set('ticketSettings.sales.show_company_data', false)
+            ->set('ticketSettings.sales.show_sale_condition', false)
+            ->set('ticketSettings.sales.show_items_header', false)
+            ->set('ticketSettings.sales.show_customer', false)
             ->set('ticketSettings.sales.show_qr', false)
             ->set('ticketSettings.payments.show_debt', false)
             ->set('ticketSettings.seller_grouped.show_company_data', false)
@@ -184,6 +205,9 @@ class TicketConfigurationTest extends TestCase
 
         $this->assertFalse($saved['sales']['auto_print']);
         $this->assertFalse($saved['sales']['show_company_data']);
+        $this->assertFalse($saved['sales']['show_sale_condition']);
+        $this->assertFalse($saved['sales']['show_items_header']);
+        $this->assertFalse($saved['sales']['show_customer']);
         $this->assertFalse($saved['sales']['show_qr']);
         $this->assertFalse($saved['payments']['show_debt']);
         $this->assertFalse($saved['seller_grouped']['show_company_data']);
@@ -219,4 +243,85 @@ class TicketConfigurationTest extends TestCase
         $config->refresh();
         $this->assertFalse($config->getTicketSetting('sales', 'auto_print', true));
     }
+
+    /** @test */
+    public function it_prints_sales_ticket_respecting_hidden_fields_and_single_header_line()
+    {
+        $connector = new \Mike42\Escpos\PrintConnectors\DummyPrintConnector();
+        $printer = new \Mike42\Escpos\Printer($connector);
+
+        $config = new Configuration();
+        $config->business_name = 'EMPRESA TEST';
+        $config->address = 'CALLE 123';
+        $config->taxpayer_id = 'J-12345678';
+        $config->phone = '123456789';
+
+        // Case 1: Header visible -> Both separator lines surround DESCRIPCION
+        $config->ticket_settings = [
+            'sales' => [
+                'show_sale_condition' => false,
+                'show_items_header' => true,
+                'show_customer' => false,
+            ]
+        ];
+
+        $separator = "--------------------------------";
+        $maskHead = "%-16.16s %-5.5s %-9.9s";
+
+        if ($config->getTicketSetting('sales', 'show_sale_condition', true)) {
+            $printer->text("Condición: CONTADO\n");
+        }
+
+        if ($config->getTicketSetting('sales', 'show_items_header', true)) {
+            $headersName = sprintf($maskHead, 'DESCRIPCION', 'CANT', 'PRECIO');
+            $printer->text($separator . "\n");
+            $printer->text($headersName . "\n");
+            $printer->text($separator . "\n");
+        } else {
+            $printer->text($separator . "\n");
+        }
+
+        $printer->text("PRODUCTO TEST    1.00  $10.00\n");
+        $printer->text($separator . "\n");
+
+        if ($config->getTicketSetting('sales', 'show_customer', true)) {
+            $printer->text("CLIENTE: Consumidor Final\n\n");
+        }
+
+        $outputVisible = $connector->getData();
+        $printer->close();
+        $this->assertStringNotContainsString("Condición:", $outputVisible);
+        $this->assertStringNotContainsString("CLIENTE:", $outputVisible);
+        $this->assertStringContainsString($separator . "\n" . sprintf($maskHead, 'DESCRIPCION', 'CANT', 'PRECIO') . "\n" . $separator, $outputVisible);
+
+        // Case 2: Header hidden -> Only ONE single separator line before products
+        $connector2 = new \Mike42\Escpos\PrintConnectors\DummyPrintConnector();
+        $printer2 = new \Mike42\Escpos\Printer($connector2);
+
+        $config->ticket_settings = [
+            'sales' => [
+                'show_sale_condition' => false,
+                'show_items_header' => false,
+                'show_customer' => false,
+            ]
+        ];
+
+        if ($config->getTicketSetting('sales', 'show_items_header', true)) {
+            $headersName = sprintf($maskHead, 'DESCRIPCION', 'CANT', 'PRECIO');
+            $printer2->text($separator . "\n");
+            $printer2->text($headersName . "\n");
+            $printer2->text($separator . "\n");
+        } else {
+            $printer2->text($separator . "\n");
+        }
+
+        $printer2->text("PRODUCTO TEST    1.00  $10.00\n");
+
+        $outputHidden = $connector2->getData();
+        $printer2->close();
+        $this->assertStringNotContainsString("DESCRIPCION", $outputHidden);
+        $this->assertEquals(1, substr_count($outputHidden, $separator));
+        $this->assertStringContainsString($separator . "\nPRODUCTO TEST", $outputHidden);
+    }
 }
+

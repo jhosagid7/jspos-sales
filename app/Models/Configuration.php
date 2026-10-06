@@ -230,6 +230,9 @@ class Configuration extends Model
             'sales' => [
                 'auto_print' => true,
                 'show_company_data' => true,
+                'show_sale_condition' => true,
+                'show_items_header' => true,
+                'show_customer' => true,
                 'show_subtotal' => true,
                 'show_tax' => true,
                 'show_cash_change' => true,
@@ -239,6 +242,8 @@ class Configuration extends Model
             ],
             'orders' => [
                 'show_company_data' => true,
+                'show_items_header' => true,
+                'show_customer' => true,
                 'show_subtotal' => true,
                 'show_tax' => true,
                 'show_cash_change' => true,
