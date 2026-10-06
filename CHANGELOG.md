@@ -1,3 +1,17 @@
+## [1.10.461] - 2026-10-06
+
+### Added & Enhanced (Personalización de Campos y Separadores en Tickets Térmicos)
+- **Configuración Dinámica de Encabezados y Datos en Tickets**:
+  - `Configuration.php`: Nuevos parámetros en `getDefaultTicketSettings()` para ventas (`sales`) y pedidos (`orders`):
+    - `show_sale_condition`: Permite mostrar u ocultar la condición de venta (`Condición: CONTADO / CRÉDITO`).
+    - `show_items_header`: Permite mostrar u ocultar la cabecera de artículos (`DESCRIPCION CANT PRECIO`).
+    - `show_customer`: Permite mostrar u ocultar el nombre del cliente (`CLIENTE: Consumidor Final`).
+  - `PrintTrait.php`: Formato ESC/POS adaptativo en `printSale` y `printOrder`:
+    - **Encabezado visible**: Mantiene las dos líneas delimitadoras superior e inferior de la cabecera de columnas.
+    - **Encabezado oculto**: Imprime **una sola línea divisoria** antes del primer producto, evitando líneas consecutivas redundantes.
+  - `settings.blade.php`: Nuevos interruptores en el panel de configuración para ventas y pedidos.
+  - `TicketConfigurationTest.php`: Cobertura de pruebas unitarias y de integración para validar persistencia, valores por defecto y renderizado de tickets.
+
 ## [1.10.460] - 2026-10-04
 
 ### Fixed & Enhanced (Sincronización de Moneda en POS y Saneamiento Automático de Cobranza)
