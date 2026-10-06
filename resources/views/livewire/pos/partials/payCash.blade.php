@@ -787,7 +787,7 @@
                     
                     <button class="btn btn-primary fs-6" wire:click.prevent='Store' type="button" 
                         style="background-color: #007bff; border-color: #007bff;"
-                        wire:loading.attr="disabled" {{ (floatval($totalCart) == 0 || ($this->isBcvSale && $this->activeDiff < $this->rateGap)) ? 'disabled' : '' }}>
+                        wire:loading.attr="disabled" {{ (floatval($totalCart) == 0 || ($this->isBcvSale && $this->rateGap > 0 && $this->activeDiff < $this->rateGap)) ? 'disabled' : '' }}>
                         <span wire:loading.remove wire:target="Store">
                             <i class="fa fa-check me-2"></i>{{ $payType == 2 ? 'Registrar Crédito' : 'Registrar Venta' }}
                         </span>

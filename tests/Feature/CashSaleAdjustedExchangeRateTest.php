@@ -168,4 +168,60 @@ class CashSaleAdjustedExchangeRateTest extends TestCase
         $this->assertEquals(75.00, floatval($paymentDetail->exchange_rate));
         $this->assertEquals(10.00, floatval($paymentDetail->amount_in_primary_currency));
     }
+
+    public function test_cash_sale_with_ved_payment_allowed_when_bcv_greater_or_equal_to_binance()
+    {
+        // When BCV rate is equal or higher than Binance rate (e.g. BCV = 872.26, Binance = 872.26)
+        Configuration::first()->update([
+            'bcv_rate' => 872.26,
+            'binance_rate' => 872.26,
+            'binance_markup_points' => 0.00,
+        ]);
+
+        \Illuminate\Support\Facades\DB::table('currencies')
+            ->whereIn('code', ['VES', 'VED'])
+            ->update([
+                'exchange_rate' => 872.26,
+                'updated_at' => now()
+            ]);
+
+        // Reset static cache in ConfigurationService
+        $ref = new \ReflectionClass(\App\Services\ConfigurationService::class);
+        $prop = $ref->getProperty('config');
+        $prop->setAccessible(true);
+        $prop->setValue(null);
+
+        $cartItem = [
+            'id' => $this->product->id,
+            'pid' => $this->product->id,
+            'sku' => $this->product->sku,
+            'name' => $this->product->name,
+            'qty' => 1,
+            'price' => 2.27,
+            'base_price' => 2.27,
+            'sale_price' => 2.27,
+            'tax' => 0.00,
+            'total' => 2.27,
+            'pricelist' => [],
+        ];
+
+        session(['cart' => [$cartItem]]);
+
+        // Paying 1980.03 VES which covers 2.27 * 872.26
+        Livewire::actingAs($this->user)
+            ->test(Sales::class)
+            ->call('setCustomer', $this->customer->toArray())
+            ->set('cart', collect([$cartItem]))
+            ->set('totalCart', 2.27)
+            ->set('itemsCart', 1)
+            ->set('selectedPaymentMethod', 'cash')
+            ->set('paymentCurrency', 'VED')
+            ->set('paymentAmount', 1980.03)
+            ->call('addPayment')
+            ->call('Store')
+            ->assertHasNoErrors();
+
+        $this->assertEquals(1, Sale::count());
+    }
 }
+

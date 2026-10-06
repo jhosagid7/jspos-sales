@@ -1,3 +1,11 @@
+## [1.10.462] - 2026-10-06
+
+### Fixed & Enhanced (Validación de Riesgo Cambiario en Ventas en Bolívares y Acuerdos de Pago)
+- **Corrección de Bloqueo Innecesario de Ventas en Bolívares (VED/VES)**:
+  - `Sales.php`: Se ajustó la validación de pagos en Bolívares en ventas de contado/mixtas para evaluar si existe un riesgo cambiario real (`binanceRate > bcvRate`). Cuando la tasa BCV es igual o mayor a Binance (ej. tasas unificadas o BCV superior), no existe riesgo de pérdida al comprar divisas, permitiendo facturar sin bloqueos por discrepancias de redondeo o perfiles comerciales.
+  - `Sales.php` & `payCash.blade.php`: Se condicionó la validación de acuerdos de pago a crédito con tasa BCV para exigir diferencial comercial únicamente cuando la brecha cambiaria sea estrictamente positiva (`rateGap > 0`).
+  - `CashSaleAdjustedExchangeRateTest.php`: Incorporada prueba automatizada de cobertura validando que pagos en VED con tasas iguales (ej. 872.26) se procesan sin errores.
+
 ## [1.10.461] - 2026-10-06
 
 ### Added & Enhanced (Personalización de Campos y Separadores en Tickets Térmicos)

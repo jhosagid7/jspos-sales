@@ -3939,7 +3939,7 @@ class Sales extends Component
 
         // 1. Credit Sales with BCV Agreement validation
         if ($this->selectedPaymentMethod === 'credit' && $this->paymentAgreement === 'BCV') {
-            if ($activeDiff < $rateGap) {
+            if ($rateGap > 0 && $activeDiff < $rateGap) {
                 $this->dispatch('noty', msg: "VENTA BLOQUEADA: El diferencial del cliente (" . number_format($activeDiff, 2) . "%) no cubre la brecha cambiaria (" . number_format($rateGap, 2) . "%).");
                 return;
             }
@@ -4005,7 +4005,10 @@ class Sales extends Component
                 }
             }
 
-            if ($totalRealUSDReceived < $baseTotalUSD - 0.01) {
+            // If BCV rate is equal to or greater than Binance rate, there is no exchange loss risk
+            $hasExchangeRisk = ($binanceRate > $bcvRate && $bcvRate > 0);
+
+            if ($hasExchangeRisk && ($totalRealUSDReceived < $baseTotalUSD - 0.01)) {
                 $this->dispatch('noty', msg: "VENTA BLOQUEADA: El pago recibido en Bolívares no cubre el valor real de la venta debido a una tasa incorrecta o diferencial insuficiente.");
                 return;
             }
