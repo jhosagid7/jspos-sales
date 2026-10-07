@@ -59,6 +59,15 @@
                                 <a href="{{ route('products.export') }}" class="btn btn-outline-success" title="Exportar productos a Excel">
                                     <i class="fa fa-download"></i> Exportar
                                 </a>
+
+                                <button class="btn btn-outline-primary" wire:click="syncToJsBolsas" wire:loading.attr="disabled" title="Sincronizar catálogo de bolsas con JSBolsas Pro">
+                                    <span wire:loading.remove wire:target="syncToJsBolsas">
+                                        <i class="fa fa-refresh me-1"></i> Sincronizar JSBolsas
+                                    </span>
+                                    <span wire:loading wire:target="syncToJsBolsas">
+                                        <i class="fa fa-spinner fa-spin me-1"></i> Sincronizando...
+                                    </span>
+                                </button>
                                 @endcan
                             </div>
                         </div>

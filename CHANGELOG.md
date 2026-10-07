@@ -1,3 +1,15 @@
+## [1.10.463] - 2026-10-07
+
+### Added & Enhanced (Sincronización de Catálogo de Bolsas con JSBolsas Pro en la Nube)
+- **Servicio Centralizado de Sincronización**:
+  - `BagCatalogSyncService.php`: Creado servicio que extrae productos de fábrica (`supplier_id = 10`, `category_id = 2` o etiqueta `M&F`) y realiza envío por HTTP POST hacia `https://bolsas.plasticosmyf.com/api/sync-catalog`. Incluye manejo de timeout de 25s, logs y respuesta estructurada con conteo de registros.
+  - `SyncBagsCatalogToCloud.php`: Refactorizado comando CLI `bags:sync-cloud` para delegar la sincronización al nuevo `BagCatalogSyncService`.
+- **Botón de Sincronización en Vista de Productos**:
+  - `Products.php`: Implementado método `syncToJsBolsas()` que invoca `BagCatalogSyncService::syncAll()` y emite notificación toast (`noty`) con el resultado de la operación.
+  - `products.blade.php`: Agregado botón visual "Sincronizar JSBolsas" en la barra de herramientas de productos con spinners de estado de carga en Livewire (`wire:loading`).
+- **Pruebas Automatizadas**:
+  - `BagCatalogSyncTest.php`: Cobertura completa con tests de integración emulando el endpoint en la nube con `Http::fake()` y validando el despacho del evento Livewire.
+
 ## [1.10.462] - 2026-10-06
 
 ### Fixed & Enhanced (Validación de Riesgo Cambiario en Ventas en Bolívares y Acuerdos de Pago)

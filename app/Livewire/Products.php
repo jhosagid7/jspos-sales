@@ -643,4 +643,11 @@ class Products extends Component
             }
         }
     }
+
+    public function syncToJsBolsas()
+    {
+        $result = \App\Services\BagCatalogSyncService::syncAll();
+        $this->dispatch('noty', msg: $result['message'], type: $result['success'] ? 'success' : 'error');
+    }
 }
+
