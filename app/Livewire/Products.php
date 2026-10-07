@@ -646,6 +646,12 @@ class Products extends Component
 
     public function syncToJsBolsas()
     {
+        $config = \App\Models\Configuration::first();
+        if (!$config || !$config->show_sync_bags_button) {
+            $this->dispatch('noty', msg: 'La sincronización con JSBolsas Pro está desactivada en la configuración.', type: 'error');
+            return;
+        }
+
         $result = \App\Services\BagCatalogSyncService::syncAll();
         $this->dispatch('noty', msg: $result['message'], type: $result['success'] ? 'success' : 'error');
     }

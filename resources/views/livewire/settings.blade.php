@@ -1183,6 +1183,22 @@
                                         @error('productionMaterialsWarehouseId') <span class="text-danger">{{ $message }}</span> @enderror
                                     </div>
 
+                                    <div class="col-sm-12 col-md-12 mb-3 p-3 bg-light rounded border">
+                                        <div class="d-flex align-items-center justify-content-between">
+                                            <div>
+                                                <label class="form-label text-dark fw-bold mb-1">
+                                                    <i class="fa fa-cloud-upload text-primary me-1"></i> BOTÓN DE SINCRONIZACIÓN CON JSBOLSAS PRO
+                                                </label>
+                                                <p class="text-muted small mb-0">
+                                                    Habilita el botón visual "Sincronizar JSBolsas" en el catálogo de productos para exportar referencias hacia el servidor en la nube de JSBolsas Pro. Por defecto viene oculto.
+                                                </p>
+                                            </div>
+                                            <div class="form-check form-switch mb-0 ms-3">
+                                                <input class="form-check-input" type="checkbox" id="showSyncBagsButton" wire:model="showSyncBagsButton" style="cursor:pointer; width: 2.5em; height: 1.3em;">
+                                            </div>
+                                        </div>
+                                    </div>
+
                                     <div class="col-sm-12 mt-3">
                                         <h5 class="text-uppercase text-primary fw-bold">Reporte de Producción (Fábrica de Bolsas)</h5>
                                         <hr class="mt-1 mb-3">
