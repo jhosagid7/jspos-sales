@@ -96,6 +96,11 @@ class Customer extends Authenticatable
         return $this->hasOne(CustomerConfig::class)->latestOfMany();
     }
 
+    public function vehicles()
+    {
+        return $this->hasMany(Vehicle::class);
+    }
+
     protected static function booted()
     {
         static::saving(function ($customer) {
