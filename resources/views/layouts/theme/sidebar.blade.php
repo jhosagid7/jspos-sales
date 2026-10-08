@@ -98,6 +98,18 @@
                     $canSeeLogistics = auth()->user()->hasRole(['Admin', 'Supervisor', 'Super Admin']) || auth()->user()->can('sales.index');
                 @endphp
 
+                {{-- MÓDULO: TALLER AUTOMOTRIZ (ADDON BÚCARO) --}}
+                @addon('workshop')
+                <li class="nav-item">
+                    <a href="{{ route('workshop.work-orders') }}" class="nav-link {{ Request::is('workshop*') ? 'active' : '' }}">
+                        <i class="nav-icon fas fa-wrench text-warning"></i>
+                        <p>
+                            TALLER AUTOMOTRIZ
+                        </p>
+                    </a>
+                </li>
+                @endaddon
+
                 {{-- MÓDULO 1: GESTIÓN COMERCIAL --}}
                 @unlessrole('Driver')
                 @anyMenuAllowed(['sales', 'credit.authorizations', 'purchases', 'purchase.list', 'price-list.index', 'commissions'])

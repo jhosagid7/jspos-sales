@@ -204,6 +204,11 @@ class Configuration extends Model
             return (bool) $this->local_overrides[$addon];
         }
 
+        // 1.05 Verificar si está en el array addon_modules
+        if (is_array($this->addon_modules) && in_array($addon, $this->addon_modules)) {
+            return true;
+        }
+
         // 1.1 Verificar si existe como columna directa en la tabla configurations
         if (array_key_exists($addon, $this->attributes) && $this->attributes[$addon] !== null) {
             return (bool) $this->attributes[$addon];
