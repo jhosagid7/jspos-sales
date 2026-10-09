@@ -50,6 +50,14 @@ class Vehicle extends Model
     }
 
     /**
+     * Relationship: A vehicle has many Work Orders.
+     */
+    public function workOrders()
+    {
+        return $this->hasMany(WorkOrder::class);
+    }
+
+    /**
      * Accessor: Full descriptive vehicle title.
      */
     public function getFullNameAttribute(): string

@@ -163,6 +163,16 @@ class User extends Authenticatable
         return $this->hasMany(DriverLocation::class, 'driver_id');
     }
 
+    public function workOrders()
+    {
+        return $this->hasMany(WorkOrder::class, 'mechanic_id');
+    }
+
+    public function workOrderItems()
+    {
+        return $this->hasMany(WorkOrderItem::class, 'mechanic_id');
+    }
+
     public function customers()
     {
         return $this->hasMany(Customer::class, 'seller_id');
@@ -236,6 +246,20 @@ class User extends Authenticatable
     public function scopeDrivers($query)
     {
         return $query->permission('distribution.map'); // Or the specific driver permission
+    }
+
+    /**
+     * Scope to get all users acting as Mechanics.
+     */
+    public function scopeMechanics($query)
+    {
+        return $query->where(function ($q) {
+            $q->whereHas('roles', function ($rq) {
+                $rq->whereIn('name', ['Mecanico', 'Mecánico', 'mecanico', 'mecanico_taller']);
+            })
+            ->orWhereIn('profile', ['Mecanico', 'Mecánico', 'mecanico'])
+            ->orWhereHas('workOrderItems');
+        })->distinct();
     }
 
     public function isSuperAdmin(): bool

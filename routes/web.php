@@ -142,6 +142,8 @@ Route::middleware('auth')->group(function () {
     // Automotive Workshop Routes
     Route::get('workshop/work-orders', \App\Livewire\Workshop\WorkOrders::class)->name('workshop.work-orders');
     Route::get('workshop/work-orders/{order}/pdf', [\App\Http\Controllers\WorkshopController::class, 'pdf'])->name('workshop.work-orders.pdf');
+    Route::get('workshop/commissions', \App\Livewire\Workshop\MechanicCommissions::class)->name('workshop.commissions');
+    Route::get('workshop/vehicles/history', \App\Livewire\Workshop\VehicleHistory::class)->name('workshop.vehicles.history');
 
     Route::get('descargos', \App\Livewire\Descargos\DescargosList::class)->name('descargos')->middleware('can:adjustments.create');
     Route::get('descargos/create', \App\Livewire\Descargos\CreateDescargo::class)->name('descargos.create')->middleware('can:adjustments.create');
