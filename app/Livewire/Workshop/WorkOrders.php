@@ -158,21 +158,52 @@ class WorkOrders extends Component
         $this->dispatch('status-updated', orderId: $orderId, status: $newStatus);
     }
 
-    public function billOrder(int $orderId, string $paymentMethod = 'cash_usd', ?int $exitMileage = null): void
+    public function createWorkOrder(): void
     {
-        $order = WorkOrder::findOrFail($orderId);
+        $this->storeOrder();
+    }
+
+    public function billOrder(?int $orderId = null, ?string $paymentMethod = null, ?int $exitMileage = null): void
+    {
+        $targetId = $orderId ?: $this->selectedOrderId;
+        if (!$targetId) {
+            return;
+        }
+
+        $order = WorkOrder::findOrFail($targetId);
 
         $service = app(WorkOrderBillingService::class);
         $userId = auth()->id() ?: $order->user_id;
 
+        $effectivePaymentMethod = $paymentMethod ?: ($this->billingData['payment_method'] ?? 'cash_usd');
+        $effectiveExitMileage = !is_null($exitMileage)
+            ? (int)$exitMileage
+            : (!empty($this->billingData['exit_mileage']) ? (int)$this->billingData['exit_mileage'] : $order->entry_mileage);
+
         $service->bill($order, [
             'user_id' => $userId,
-            'payment_method' => $paymentMethod,
-            'exit_mileage' => $exitMileage ?: $order->entry_mileage,
+            'payment_method' => $effectivePaymentMethod,
+            'exit_mileage' => $effectiveExitMileage,
+            'notes' => $this->billingData['notes'] ?? '',
         ]);
 
         $this->showBillingModal = false;
-        $this->dispatch('order-billed', orderId: $orderId);
+        $this->dispatch('order-billed', orderId: $targetId);
+    }
+
+    public function onProductSelected($productId): void
+    {
+        if (!$productId) {
+            return;
+        }
+
+        $product = Product::find($productId);
+        if ($product) {
+            $this->newItem['product_id'] = $product->id;
+            $this->newItem['description'] = $product->name;
+            $this->newItem['unit_price'] = (float)$product->price;
+            $this->newItem['unit_cost'] = (float)$product->cost;
+        }
     }
 
     public function render()
@@ -198,12 +229,15 @@ class WorkOrders extends Component
 
         $mechanics = User::all();
 
+        $products = Product::where('status', 'available')->orderBy('name')->take(100)->get();
+
         return view('livewire.workshop.work-orders', [
             'orders' => $orders,
             'selectedOrder' => $selectedOrder,
             'customers' => $customers,
             'vehicles' => $vehicles,
             'mechanics' => $mechanics,
+            'products' => $products,
         ]);
     }
 }
