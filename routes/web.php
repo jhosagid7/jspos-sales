@@ -141,6 +141,7 @@ Route::middleware('auth')->group(function () {
     Route::get('soplados/expected-production', \App\Livewire\Soplados\ExpectedProductionList::class)->name('soplados.expected-production')->middleware(['can:production.index']);
     // Automotive Workshop Routes
     Route::get('workshop/work-orders', \App\Livewire\Workshop\WorkOrders::class)->name('workshop.work-orders');
+    Route::get('workshop/work-orders/{order}/pdf', [\App\Http\Controllers\WorkshopController::class, 'pdf'])->name('workshop.work-orders.pdf');
 
     Route::get('descargos', \App\Livewire\Descargos\DescargosList::class)->name('descargos')->middleware('can:adjustments.create');
     Route::get('descargos/create', \App\Livewire\Descargos\CreateDescargo::class)->name('descargos.create')->middleware('can:adjustments.create');
