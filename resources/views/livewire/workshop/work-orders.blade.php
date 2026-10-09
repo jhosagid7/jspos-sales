@@ -1,85 +1,90 @@
-<div class="p-6 max-w-7xl mx-auto space-y-6">
-    <!-- Header -->
-    <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+<div>
+    {{-- Encabezado estilizado con AdminLTE --}}
+    <div class="d-flex justify-content-between align-items-center mb-3">
         <div>
-            <h1 class="text-2xl font-bold text-gray-800 flex items-center gap-2">
-                <svg class="w-7 h-7 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
-                </svg>
-                Taller Automotriz - Fichas de Servicio
-            </h1>
-            <p class="text-sm text-gray-500 mt-1">Gestión integral de vehículos, diagnósticos, repuestos y liquidación de mano de obra</p>
+            <h3 class="font-weight-bold text-dark mb-0">
+                <i class="fas fa-wrench text-warning mr-2"></i> Taller Automotriz - Fichas y Órdenes de Servicio
+            </h3>
+            <small class="text-muted">Recepción de vehículos, diagnóstico, control de repuestos, mano de obra y facturación</small>
         </div>
-        <div class="flex items-center gap-3">
-            <button wire:click="$set('showCreateModal', true)" class="px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-medium rounded-lg shadow-sm transition flex items-center gap-2">
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
-                Nueva Ficha / Orden
+        <div>
+            <button type="button" wire:click="$set('showCreateModal', true)" class="btn btn-primary btn-lg shadow-sm">
+                <i class="fas fa-plus-circle mr-1"></i> Nueva Ficha / Orden
             </button>
         </div>
     </div>
 
-    <!-- Filters & Search -->
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 bg-white p-4 rounded-xl shadow-sm border border-gray-100">
-        <div class="md:col-span-2 relative">
-            <input type="text" wire:model.live.debounce.300ms="search" placeholder="Buscar por placa, orden (OT-...), cliente o vehículo..." class="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-sm">
-            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-400">
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+    {{-- Barra de Búsqueda y Filtros --}}
+    <div class="card shadow-sm mb-3">
+        <div class="card-body p-3">
+            <div class="row align-items-center">
+                <div class="col-md-8 mb-2 mb-md-0">
+                    <div class="input-group">
+                        <div class="input-group-prepend">
+                            <span class="input-group-text bg-white"><i class="fas fa-search text-muted"></i></span>
+                        </div>
+                        <input type="text" wire:model.live.debounce.300ms="search" class="form-control" placeholder="Buscar por placa, número de orden (OT-...), cliente o modelo de vehículo...">
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <select wire:model.live="statusFilter" class="form-control">
+                        <option value="">Todos los Estados</option>
+                        <option value="reception">Recepción / Diagnóstico</option>
+                        <option value="budgeted">Presupuesto</option>
+                        <option value="approved">Aprobado</option>
+                        <option value="in_progress">En Reparación</option>
+                        <option value="ready">Listo para Entrega</option>
+                        <option value="invoiced">Facturado / Cobrado</option>
+                    </select>
+                </div>
             </div>
-        </div>
-        <div>
-            <select wire:model.live="statusFilter" class="w-full py-2 px-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-sm">
-                <option value="">Todos los Estados</option>
-                <option value="reception">Recepción / Diagnóstico</option>
-                <option value="budgeted">Presupuesto</option>
-                <option value="approved">Aprobado</option>
-                <option value="in_progress">En Reparación</option>
-                <option value="ready">Listo para Entrega</option>
-                <option value="invoiced">Facturado / Entregado</option>
-            </select>
         </div>
     </div>
 
-    <!-- Main Content Grid -->
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <!-- Orders List (2 Cols on lg) -->
-        <div class="lg:col-span-2 space-y-4">
-            <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-                <div class="overflow-x-auto">
-                    <table class="w-full text-left text-sm">
-                        <thead class="bg-gray-50 border-b border-gray-200 text-xs font-semibold text-gray-600 uppercase tracking-wider">
+    {{-- Grid Principal: Lista de Órdenes (Col-8) y Detalle Activo (Col-4) --}}
+    <div class="row">
+        {{-- Listado de Órdenes --}}
+        <div class="col-lg-8">
+            <div class="card card-outline card-primary shadow-sm">
+                <div class="card-header p-2">
+                    <h5 class="card-title font-weight-bold mb-0">Órdenes de Trabajo Registradas</h5>
+                </div>
+                <div class="card-body p-0 table-responsive">
+                    <table class="table table-hover table-striped mb-0 text-sm">
+                        <thead class="bg-light">
                             <tr>
-                                <th class="px-4 py-3">Orden</th>
-                                <th class="px-4 py-3">Vehículo / Placa</th>
-                                <th class="px-4 py-3">Cliente</th>
-                                <th class="px-4 py-3">Estado</th>
-                                <th class="px-4 py-3 text-right">Total</th>
-                                <th class="px-4 py-3 text-center">Acciones</th>
+                                <th>Orden</th>
+                                <th>Vehículo / Placa</th>
+                                <th>Cliente</th>
+                                <th class="text-center">Estado</th>
+                                <th class="text-right">Total</th>
+                                <th class="text-center" style="width: 100px;">Acciones</th>
                             </tr>
                         </thead>
-                        <tbody class="divide-y divide-gray-100">
+                        <tbody>
                             @forelse($orders as $order)
-                                <tr wire:key="order-{{ $order->id }}" class="hover:bg-indigo-50/40 transition cursor-pointer {{ $selectedOrderId === $order->id ? 'bg-indigo-50/80 font-medium' : '' }}" wire:click="selectOrder({{ $order->id }})">
-                                    <td class="px-4 py-3 font-semibold text-indigo-600">
-                                        {{ $order->order_number }}
-                                        <div class="text-xs text-gray-400 font-normal">{{ $order->created_at->format('d/m/Y') }}</div>
+                                <tr wire:key="order-{{ $order->id }}" class="{{ $selectedOrderId === $order->id ? 'table-primary font-weight-bold' : '' }}" style="cursor: pointer;" wire:click="selectOrder({{ $order->id }})">
+                                    <td>
+                                        <span class="badge badge-primary font-weight-bold">{{ $order->order_number }}</span>
+                                        <div class="text-muted text-xs mt-1">{{ $order->created_at->format('d/m/Y') }}</div>
                                     </td>
-                                    <td class="px-4 py-3">
-                                        <span class="inline-block px-2 py-0.5 bg-gray-100 text-gray-800 rounded font-mono font-bold text-xs">{{ $order->vehicle?->plate }}</span>
-                                        <div class="text-xs text-gray-500">{{ $order->vehicle?->brand }} {{ $order->vehicle?->model }}</div>
+                                    <td>
+                                        <span class="badge badge-dark">{{ $order->vehicle?->plate }}</span>
+                                        <div class="text-muted text-xs mt-1">{{ $order->vehicle?->brand }} {{ $order->vehicle?->model }}</div>
                                     </td>
-                                    <td class="px-4 py-3 text-gray-700">
-                                        {{ $order->customer?->name }}
+                                    <td>
+                                        <div>{{ $order->customer?->name }}</div>
+                                        <small class="text-muted">{{ $order->customer?->taxpayer_id }}</small>
                                     </td>
-                                    <td class="px-4 py-3">
+                                    <td class="text-center">
                                         @php
                                             $badges = [
-                                                'reception' => 'bg-amber-100 text-amber-800',
-                                                'budgeted' => 'bg-blue-100 text-blue-800',
-                                                'approved' => 'bg-purple-100 text-purple-800',
-                                                'in_progress' => 'bg-orange-100 text-orange-800',
-                                                'ready' => 'bg-emerald-100 text-emerald-800',
-                                                'invoiced' => 'bg-gray-100 text-gray-800',
+                                                'reception' => 'badge-warning',
+                                                'budgeted' => 'badge-info',
+                                                'approved' => 'badge-secondary',
+                                                'in_progress' => 'badge-primary',
+                                                'ready' => 'badge-success',
+                                                'invoiced' => 'badge-dark',
                                             ];
                                             $labels = [
                                                 'reception' => 'Recepción',
@@ -90,22 +95,26 @@
                                                 'invoiced' => 'Facturado',
                                             ];
                                         @endphp
-                                        <span class="px-2 py-1 rounded-full text-xs font-semibold {{ $badges[$order->status] ?? 'bg-gray-100 text-gray-600' }}">
+                                        <span class="badge {{ $badges[$order->status] ?? 'badge-light' }} p-1 px-2">
                                             {{ $labels[$order->status] ?? $order->status }}
                                         </span>
                                     </td>
-                                    <td class="px-4 py-3 text-right font-semibold text-gray-800">
+                                    <td class="text-right font-weight-bold text-success font-weight-bold">
                                         ${{ number_format($order->total, 2) }}
                                     </td>
-                                    <td class="px-4 py-3 text-center">
-                                        <button wire:click.stop="selectOrder({{ $order->id }})" class="p-1.5 text-gray-500 hover:text-indigo-600 rounded">
-                                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>
+                                    <td class="text-center" onclick="event.stopPropagation();">
+                                        <a href="{{ route('workshop.work-orders.pdf', $order->id) }}" target="_blank" class="btn btn-outline-danger btn-xs" title="Ficha PDF">
+                                            <i class="fas fa-file-pdf"></i>
+                                        </a>
+                                        <button wire:click="selectOrder({{ $order->id }})" class="btn btn-outline-primary btn-xs ml-1" title="Ver Detalle">
+                                            <i class="fas fa-eye"></i>
                                         </button>
                                     </td>
                                 </tr>
                             @empty
                                 <tr>
-                                    <td colspan="6" class="px-4 py-8 text-center text-gray-500">
+                                    <td colspan="6" class="text-center py-4 text-muted">
+                                        <i class="fas fa-car fa-2x mb-2 d-block text-secondary"></i>
                                         No se encontraron órdenes de trabajo registradas.
                                     </td>
                                 </tr>
@@ -113,114 +122,328 @@
                         </tbody>
                     </table>
                 </div>
-                <div class="p-3 border-t border-gray-100">
+                <div class="card-footer p-2 bg-white">
                     {{ $orders->links() }}
                 </div>
             </div>
         </div>
 
-        <!-- Order Detail Panel (1 Col on lg) -->
-        <div class="lg:col-span-1">
+        {{-- Panel Lateral: Detalle de Orden --}}
+        <div class="col-lg-4">
             @if($selectedOrder)
-                <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-5 space-y-4">
-                    <div class="flex items-center justify-between border-b pb-3">
+                <div class="card card-outline card-info shadow-sm">
+                    <div class="card-header bg-white d-flex justify-content-between align-items-center p-3">
                         <div>
-                            <span class="text-xs uppercase font-bold text-gray-400">Detalle de Orden</span>
-                            <h2 class="text-xl font-bold text-gray-800">{{ $selectedOrder->order_number }}</h2>
+                            <small class="text-muted text-uppercase d-block font-weight-bold">Ficha de Trabajo</small>
+                            <h4 class="font-weight-bold text-primary mb-0">{{ $selectedOrder->order_number }}</h4>
                         </div>
-                        <div class="flex items-center gap-2">
-                            <a href="{{ route('workshop.work-orders.pdf', $selectedOrder->id) }}" target="_blank" class="px-2.5 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-semibold rounded-lg transition inline-flex items-center gap-1" title="Ver / Descargar Ficha PDF">
-                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
-                                PDF
+                        <div>
+                            <a href="{{ route('workshop.work-orders.pdf', $selectedOrder->id) }}" target="_blank" class="btn btn-outline-danger btn-sm mr-1" title="Descargar PDF">
+                                <i class="fas fa-file-pdf"></i> PDF
                             </a>
                             @if($selectedOrder->status !== 'invoiced')
-                                <button wire:click="$set('showItemModal', true)" class="px-3 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-xs font-semibold rounded-lg transition">
-                                    + Agregar Ítem
+                                <button wire:click="$set('showItemModal', true)" class="btn btn-outline-primary btn-sm" title="Agregar Mano de Obra o Repuestos">
+                                    <i class="fas fa-plus"></i> Ítem
                                 </button>
-                                <button wire:click="$set('showBillingModal', true)" class="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold rounded-lg transition shadow-sm">
-                                    Cobrar / Facturar
+                                <button wire:click="$set('showBillingModal', true)" class="btn btn-success btn-sm ml-1" title="Cobrar / Facturar en Caja">
+                                    <i class="fas fa-cash-register"></i> Cobrar
                                 </button>
                             @else
-                                <span class="px-2.5 py-1 bg-gray-100 text-gray-700 font-semibold text-xs rounded-full">Orden Cobrada</span>
+                                <span class="badge badge-success p-2">Cobrada</span>
                             @endif
                         </div>
                     </div>
 
-                    <!-- Vehicle & Client Info -->
-                    <div class="bg-gray-50 p-3 rounded-lg text-xs space-y-1.5">
-                        <div class="flex justify-between">
-                            <span class="text-gray-500">Cliente:</span>
-                            <span class="font-semibold text-gray-800">{{ $selectedOrder->customer?->name }}</span>
+                    <div class="card-body p-3">
+                        {{-- Datos del Vehículo y Cliente --}}
+                        <div class="bg-light p-3 rounded mb-3 border">
+                            <div class="d-flex justify-content-between mb-1">
+                                <span class="text-muted text-xs">Cliente:</span>
+                                <span class="font-weight-bold text-xs">{{ $selectedOrder->customer?->name }}</span>
+                            </div>
+                            <div class="d-flex justify-content-between mb-1">
+                                <span class="text-muted text-xs">Vehículo:</span>
+                                <span class="font-weight-bold text-xs">{{ $selectedOrder->vehicle?->brand }} {{ $selectedOrder->vehicle?->model }} ({{ $selectedOrder->vehicle?->year }})</span>
+                            </div>
+                            <div class="d-flex justify-content-between mb-1">
+                                <span class="text-muted text-xs">Placa:</span>
+                                <span class="badge badge-dark text-xs">{{ $selectedOrder->vehicle?->plate }}</span>
+                            </div>
+                            <div class="d-flex justify-content-between mb-1">
+                                <span class="text-muted text-xs">Km Entrada:</span>
+                                <span class="text-xs">{{ number_format($selectedOrder->entry_mileage) }} km</span>
+                            </div>
+                            <div class="d-flex justify-content-between">
+                                <span class="text-muted text-xs">Tanque:</span>
+                                <span class="text-xs font-weight-bold">{{ $selectedOrder->fuel_level }}</span>
+                            </div>
                         </div>
-                        <div class="flex justify-between">
-                            <span class="text-gray-500">Vehículo:</span>
-                            <span class="font-semibold text-gray-800">{{ $selectedOrder->vehicle?->brand }} {{ $selectedOrder->vehicle?->model }} ({{ $selectedOrder->vehicle?->year }})</span>
-                        </div>
-                        <div class="flex justify-between">
-                            <span class="text-gray-500">Placa:</span>
-                            <span class="font-mono font-bold text-gray-800">{{ $selectedOrder->vehicle?->plate }}</span>
-                        </div>
-                        <div class="flex justify-between">
-                            <span class="text-gray-500">Km Entrada:</span>
-                            <span class="font-semibold text-gray-800">{{ number_format($selectedOrder->entry_mileage) }} Km</span>
-                        </div>
-                        <div class="flex justify-between">
-                            <span class="text-gray-500">Combustible:</span>
-                            <span class="font-semibold text-gray-800">{{ $selectedOrder->fuel_level }}</span>
-                        </div>
-                    </div>
 
-                    <!-- Items List -->
-                    <div>
-                        <h3 class="text-xs font-bold uppercase text-gray-500 mb-2">Servicios y Repuestos</h3>
-                        <div class="divide-y divide-gray-100 max-h-60 overflow-y-auto pr-1">
-                            @forelse($selectedOrder->items as $item)
-                                <div class="py-2 text-xs flex justify-between items-start">
-                                    <div>
-                                        <div class="font-semibold text-gray-800 flex items-center gap-1.5">
-                                            <span class="w-2 h-2 rounded-full {{ $item->type === 'part' ? 'bg-blue-500' : 'bg-amber-500' }}"></span>
-                                            {{ $item->description }}
+                        {{-- Diagnóstico Inicial --}}
+                        <div class="mb-3">
+                            <small class="text-muted font-weight-bold text-uppercase d-block mb-1">Diagnóstico Inicial:</small>
+                            <div class="p-2 bg-white rounded border text-xs text-secondary">
+                                {{ $selectedOrder->initial_diagnosis }}
+                            </div>
+                        </div>
+
+                        {{-- Lista de Ítems / Repuestos --}}
+                        <div class="mb-3">
+                            <small class="text-muted font-weight-bold text-uppercase d-block mb-2">Servicios y Repuestos:</small>
+                            <div class="list-group list-group-flush border rounded" style="max-height: 220px; overflow-y: auto;">
+                                @forelse($selectedOrder->items as $item)
+                                    <div class="list-group-item p-2 d-flex justify-content-between align-items-center text-xs">
+                                        <div>
+                                            <div class="font-weight-bold text-dark">
+                                                <i class="fas fa-circle mr-1 {{ $item->type === 'part' ? 'text-primary' : 'text-warning' }}" style="font-size: 8px;"></i>
+                                                {{ $item->description }}
+                                            </div>
+                                            <div class="text-muted text-xs mt-0.5">
+                                                {{ $item->quantity }} x ${{ number_format($item->unit_price, 2) }}
+                                                @if($item->mechanic)
+                                                    <span class="badge badge-light ml-1">Mec: {{ $item->mechanic->name }}</span>
+                                                @endif
+                                            </div>
                                         </div>
-                                        <div class="text-gray-400 text-[11px] mt-0.5">
-                                            {{ $item->quantity }} x ${{ number_format($item->unit_price, 2) }}
-                                            @if($item->mechanic)
-                                                • Mec: {{ $item->mechanic->name }}
-                                            @endif
+                                        <div class="font-weight-bold text-dark">
+                                            ${{ number_format($item->subtotal, 2) }}
                                         </div>
                                     </div>
-                                    <div class="font-bold text-gray-800">
-                                        ${{ number_format($item->subtotal, 2) }}
+                                @empty
+                                    <div class="p-3 text-center text-muted text-xs">
+                                        No hay ítems cargados en esta orden.
                                     </div>
-                                </div>
-                            @empty
-                                <div class="py-4 text-center text-gray-400 text-xs">
-                                    No hay ítems cargados en esta orden.
-                                </div>
-                            @endforelse
+                                @endforelse
+                            </div>
                         </div>
-                    </div>
 
-                    <!-- Financial Summary -->
-                    <div class="border-t pt-3 space-y-1 text-xs">
-                        <div class="flex justify-between text-gray-600">
-                            <span>Subtotal Repuestos:</span>
-                            <span>${{ number_format($selectedOrder->subtotal_parts, 2) }}</span>
-                        </div>
-                        <div class="flex justify-between text-gray-600">
-                            <span>Subtotal Mano de Obra:</span>
-                            <span>${{ number_format($selectedOrder->subtotal_labor, 2) }}</span>
-                        </div>
-                        <div class="flex justify-between text-base font-bold text-gray-900 border-t pt-1">
-                            <span>Total General:</span>
-                            <span class="text-indigo-600">${{ number_format($selectedOrder->total, 2) }}</span>
+                        {{-- Resumen Financiero --}}
+                        <div class="border-top pt-2">
+                            <div class="d-flex justify-content-between text-xs mb-1">
+                                <span class="text-muted">Subtotal Repuestos:</span>
+                                <span class="font-weight-bold">${{ number_format($selectedOrder->subtotal_parts, 2) }}</span>
+                            </div>
+                            <div class="d-flex justify-content-between text-xs mb-1">
+                                <span class="text-muted">Subtotal Mano de Obra:</span>
+                                <span class="font-weight-bold">${{ number_format($selectedOrder->subtotal_labor, 2) }}</span>
+                            </div>
+                            <div class="d-flex justify-content-between align-items-center border-top pt-2 mt-2">
+                                <h6 class="font-weight-bold mb-0">TOTAL GENERAL:</h6>
+                                <h4 class="font-weight-bold text-success mb-0">${{ number_format($selectedOrder->total, 2) }}</h4>
+                            </div>
                         </div>
                     </div>
                 </div>
             @else
-                <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-8 text-center text-gray-400 text-sm">
-                    Selecciona una orden de la lista para ver el diagnóstico y cargar repuestos.
+                <div class="card shadow-sm text-center p-4">
+                    <div class="card-body">
+                        <i class="fas fa-car-side fa-3x text-muted mb-3 d-block"></i>
+                        <h6 class="font-weight-bold text-secondary">Ninguna Orden Seleccionada</h6>
+                        <p class="text-muted text-xs mb-0">Selecciona una orden de la lista para ver sus detalles, cargar repuestos o emitir la factura.</p>
+                    </div>
                 </div>
             @endif
         </div>
     </div>
+
+    {{-- MODAL 1: NUEVA FICHA / ORDEN DE TRABAJO --}}
+    @if($showCreateModal)
+    <div class="modal fade show d-block" style="background: rgba(0,0,0,0.6); z-index: 1050;" tabindex="-1">
+        <div class="modal-dialog modal-lg modal-dialog-centered">
+            <div class="modal-content shadow-lg border-0">
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title font-weight-bold"><i class="fas fa-file-invoice mr-2"></i> Nueva Ficha de Servicio / Recepción</h5>
+                    <button type="button" class="close text-white" wire:click="$set('showCreateModal', false)">&times;</button>
+                </div>
+                <div class="modal-body p-4">
+                    <div class="row">
+                        <div class="col-md-6 form-group">
+                            <label class="font-weight-bold text-xs">Cliente / Propietario <span class="text-danger">*</span></label>
+                            <select wire:model.live="newOrder.customer_id" class="form-control">
+                                <option value="">Seleccione Cliente...</option>
+                                @foreach($customers as $c)
+                                    <option value="{{ $c->id }}">{{ $c->name }} ({{ $c->taxpayer_id }})</option>
+                                @endforeach
+                            </select>
+                            @error('newOrder.customer_id') <span class="text-danger text-xs">{{ $message }}</span> @enderror
+                        </div>
+                        <div class="col-md-6 form-group">
+                            <label class="font-weight-bold text-xs">Vehículo <span class="text-danger">*</span></label>
+                            <select wire:model.live="newOrder.vehicle_id" class="form-control">
+                                <option value="">Seleccione Vehículo...</option>
+                                @foreach($vehicles as $v)
+                                    <option value="{{ $v->id }}">{{ $v->plate }} - {{ $v->brand }} {{ $v->model }} ({{ $v->year }})</option>
+                                @endforeach
+                            </select>
+                            @error('newOrder.vehicle_id') <span class="text-danger text-xs">{{ $message }}</span> @enderror
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-4 form-group">
+                            <label class="font-weight-bold text-xs">Kilometraje al Recibir <span class="text-danger">*</span></label>
+                            <input type="number" wire:model.live="newOrder.entry_mileage" class="form-control" placeholder="Ej: 95000">
+                            @error('newOrder.entry_mileage') <span class="text-danger text-xs">{{ $message }}</span> @enderror
+                        </div>
+                        <div class="col-md-4 form-group">
+                            <label class="font-weight-bold text-xs">Nivel Tanque Combustible</label>
+                            <select wire:model.live="newOrder.fuel_level" class="form-control">
+                                <option value="Reserva">Reserva</option>
+                                <option value="1/4">1/4 de Tanque</option>
+                                <option value="1/2">1/2 de Tanque</option>
+                                <option value="3/4">3/4 de Tanque</option>
+                                <option value="Lleno">Tanque Lleno</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4 form-group">
+                            <label class="font-weight-bold text-xs">Mecánico Líder Asignado</label>
+                            <select wire:model.live="newOrder.mechanic_id" class="form-control">
+                                <option value="">Sin asignar aún</option>
+                                @foreach($mechanics as $m)
+                                    <option value="{{ $m->id }}">{{ $m->name }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label class="font-weight-bold text-xs">Diagnóstico Inicial / Motivo de Entrada <span class="text-danger">*</span></label>
+                        <textarea wire:model.live="newOrder.initial_diagnosis" rows="3" class="form-control" placeholder="Describa el problema reportado por el cliente, fallas, ruidos o servicios solicitados..."></textarea>
+                        @error('newOrder.initial_diagnosis') <span class="text-danger text-xs">{{ $message }}</span> @enderror
+                    </div>
+                </div>
+                <div class="modal-footer bg-light">
+                    <button type="button" class="btn btn-secondary btn-sm" wire:click="$set('showCreateModal', false)">Cancelar</button>
+                    <button type="button" class="btn btn-primary btn-sm font-weight-bold" wire:click="createWorkOrder">
+                        <i class="fas fa-save mr-1"></i> Crear Orden de Servicio
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    @endif
+
+    {{-- MODAL 2: AGREGAR ÍTEM (REPUESTO O MANO DE OBRA) --}}
+    @if($showItemModal)
+    <div class="modal fade show d-block" style="background: rgba(0,0,0,0.6); z-index: 1050;" tabindex="-1">
+        <div class="modal-dialog modal-md modal-dialog-centered">
+            <div class="modal-content shadow-lg border-0">
+                <div class="modal-header bg-info text-white">
+                    <h5 class="modal-title font-weight-bold"><i class="fas fa-wrench mr-2"></i> Agregar Ítem a Orden</h5>
+                    <button type="button" class="close text-white" wire:click="$set('showItemModal', false)">&times;</button>
+                </div>
+                <div class="modal-body p-4">
+                    <div class="form-group">
+                        <label class="font-weight-bold text-xs">Tipo de Ítem</label>
+                        <div class="btn-group btn-group-toggle w-100" data-toggle="buttons">
+                            <button type="button" class="btn btn-outline-primary btn-sm {{ $newItem['type'] === 'labor' ? 'active' : '' }}" wire:click="$set('newItem.type', 'labor')">
+                                <i class="fas fa-user-cog mr-1"></i> Mano de Obra
+                            </button>
+                            <button type="button" class="btn btn-outline-primary btn-sm {{ $newItem['type'] === 'part' ? 'active' : '' }}" wire:click="$set('newItem.type', 'part')">
+                                <i class="fas fa-cogs mr-1"></i> Repuesto de Inventario
+                            </button>
+                        </div>
+                    </div>
+
+                    @if($newItem['type'] === 'part')
+                        <div class="form-group">
+                            <label class="font-weight-bold text-xs">Seleccionar Repuesto del Inventario</label>
+                            <select wire:change="onProductSelected($event.target.value)" class="form-control">
+                                <option value="">Seleccione producto...</option>
+                                @foreach($products as $p)
+                                    <option value="{{ $p->id }}">{{ $p->name }} (Stock: {{ $p->stock_qty }}) - ${{ number_format($p->price, 2) }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                    @endif
+
+                    <div class="form-group">
+                        <label class="font-weight-bold text-xs">Descripción del Trabajo / Repuesto <span class="text-danger">*</span></label>
+                        <input type="text" wire:model.live="newItem.description" class="form-control" placeholder="Ej: Rectificado de discos, Cambio de pastillas...">
+                        @error('newItem.description') <span class="text-danger text-xs">{{ $message }}</span> @enderror
+                    </div>
+
+                    <div class="row">
+                        <div class="col-6 form-group">
+                            <label class="font-weight-bold text-xs">Cantidad <span class="text-danger">*</span></label>
+                            <input type="number" step="0.5" wire:model.live="newItem.quantity" class="form-control">
+                            @error('newItem.quantity') <span class="text-danger text-xs">{{ $message }}</span> @enderror
+                        </div>
+                        <div class="col-6 form-group">
+                            <label class="font-weight-bold text-xs">Precio Unitario ($) <span class="text-danger">*</span></label>
+                            <input type="number" step="0.01" wire:model.live="newItem.unit_price" class="form-control">
+                            @error('newItem.unit_price') <span class="text-danger text-xs">{{ $message }}</span> @enderror
+                        </div>
+                    </div>
+
+                    @if($newItem['type'] === 'labor')
+                        <div class="row bg-light p-2 rounded mb-2 border">
+                            <div class="col-7 form-group mb-0">
+                                <label class="font-weight-bold text-xs">Mecánico Ejecutante</label>
+                                <select wire:model.live="newItem.mechanic_id" class="form-control form-control-sm">
+                                    <option value="">Seleccione especialista...</option>
+                                    @foreach($mechanics as $m)
+                                        <option value="{{ $m->id }}">{{ $m->name }}</option>
+                                    @endforeach
+                                </select>
+                            </div>
+                            <div class="col-5 form-group mb-0">
+                                <label class="font-weight-bold text-xs">% Comisión</label>
+                                <input type="number" step="1" wire:model.live="newItem.mechanic_commission_percentage" class="form-control form-control-sm" placeholder="Ej: 30">
+                            </div>
+                        </div>
+                    @endif
+                </div>
+                <div class="modal-footer bg-light">
+                    <button type="button" class="btn btn-secondary btn-sm" wire:click="$set('showItemModal', false)">Cancelar</button>
+                    <button type="button" class="btn btn-info btn-sm font-weight-bold text-white" wire:click="addItem">
+                        <i class="fas fa-check mr-1"></i> Agregar a la Orden
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    @endif
+
+    {{-- MODAL 3: COBRAR / FACTURAR ORDEN --}}
+    @if($showBillingModal)
+    <div class="modal fade show d-block" style="background: rgba(0,0,0,0.6); z-index: 1050;" tabindex="-1">
+        <div class="modal-dialog modal-md modal-dialog-centered">
+            <div class="modal-content shadow-lg border-0">
+                <div class="modal-header bg-success text-white">
+                    <h5 class="modal-title font-weight-bold"><i class="fas fa-cash-register mr-2"></i> Cobrar y Facturar Orden</h5>
+                    <button type="button" class="close text-white" wire:click="$set('showBillingModal', false)">&times;</button>
+                </div>
+                <div class="modal-body p-4">
+                    <div class="alert alert-success text-center">
+                        <small class="text-uppercase font-weight-bold">Total a Facturar</small>
+                        <h2 class="font-weight-bold mb-0">${{ number_format($selectedOrder->total, 2) }}</h2>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="font-weight-bold text-xs">Modalidad de Pago / Facturación</label>
+                        <select wire:model.live="billingData.payment_method" class="form-control">
+                            <option value="cash_usd">Efectivo Dólares (Caja POS)</option>
+                            <option value="credit">Crédito Corporativo (Cuentas por Cobrar)</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="font-weight-bold text-xs">Kilometraje al Entregar (Odómetro Salida)</label>
+                        <input type="number" wire:model.live="billingData.exit_mileage" class="form-control" placeholder="{{ $selectedOrder->entry_mileage }}">
+                    </div>
+
+                    <div class="form-group mb-0">
+                        <label class="font-weight-bold text-xs">Observaciones de Entrega</label>
+                        <textarea wire:model.live="billingData.notes" rows="2" class="form-control" placeholder="Notas de liquidación, firma de recibido..."></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer bg-light">
+                    <button type="button" class="btn btn-secondary btn-sm" wire:click="$set('showBillingModal', false)">Cancelar</button>
+                    <button type="button" class="btn btn-success btn-sm font-weight-bold" wire:click="billOrder">
+                        <i class="fas fa-check-double mr-1"></i> Confirmar Facturación
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    @endif
 </div>

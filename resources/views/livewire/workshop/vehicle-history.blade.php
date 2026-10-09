@@ -1,140 +1,161 @@
-<div class="p-6 max-w-7xl mx-auto space-y-6">
-    <!-- Header -->
-    <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white p-5 rounded-2xl shadow-sm border border-gray-100">
+<div>
+    {{-- Header --}}
+    <div class="d-flex justify-content-between align-items-center mb-3">
         <div>
-            <div class="flex items-center gap-2">
-                <span class="px-2.5 py-0.5 rounded-full text-xs font-bold bg-blue-100 text-blue-800 uppercase tracking-wider">
-                    Taller Mecánico
-                </span>
-                <span class="text-xs text-gray-400">• Trazabilidad y Mantenimiento</span>
-            </div>
-            <h1 class="text-2xl font-black text-gray-900 tracking-tight mt-1">Historial Clínico del Vehículo</h1>
-            <p class="text-xs text-gray-500">Consulte todas las intervenciones, reparaciones, repuestos instalados y kilometraje por placa.</p>
+            <h3 class="font-weight-bold text-dark mb-0">
+                <i class="fas fa-history text-info mr-2"></i> Historial Clínico y Ficha del Vehículo
+            </h3>
+            <small class="text-muted">Consulte todas las intervenciones, reparaciones, repuestos instalados y kilometraje por placa</small>
         </div>
     </div>
 
-    <!-- Search Box -->
-    <div class="bg-white p-5 rounded-xl shadow-sm border border-gray-100">
-        <label class="block text-xs font-bold uppercase text-gray-600 mb-2">Buscar Vehículo por Placa, Marca o Modelo</label>
-        <div class="flex gap-2">
-            <input type="text" wire:model.live.debounce.300ms="searchPlate" wire:keydown.enter="searchVehicle" placeholder="Ej: ABC-123, Hilux, Fortaleza..." class="flex-1 text-sm rounded-lg border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 shadow-sm uppercase">
-            <button wire:click="searchVehicle" class="px-5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-xs rounded-lg transition shadow-sm">
-                Buscar
-            </button>
-        </div>
-
-        @if(!empty($vehicles) && !$selectedVehicleId)
-            <div class="mt-3 divide-y divide-gray-100 border border-gray-100 rounded-lg overflow-hidden bg-gray-50">
-                @foreach($vehicles as $v)
-                    <div wire:click="selectVehicle({{ $v->id }})" class="p-3 hover:bg-indigo-50 cursor-pointer flex justify-between items-center text-xs">
-                        <div>
-                            <span class="font-black text-indigo-700 text-sm">{{ $v->plate }}</span>
-                            <span class="font-semibold text-gray-800 ml-2">{{ $v->brand }} {{ $v->model }} ({{ $v->year }})</span>
-                            <span class="text-gray-400 ml-2">• Dueño: {{ $v->customer->name ?? 'N/A' }}</span>
-                        </div>
-                        <span class="text-xs font-bold text-indigo-600">Ver Ficha &rarr;</span>
-                    </div>
-                @endforeach
+    {{-- Buscador de Vehículo --}}
+    <div class="card shadow-sm mb-3">
+        <div class="card-body p-3">
+            <label class="font-weight-bold text-xs text-uppercase mb-2">Buscar Vehículo por Placa, Marca o Modelo:</label>
+            <div class="input-group">
+                <input type="text" wire:model.live.debounce.300ms="searchPlate" wire:keydown.enter="searchVehicle" class="form-control text-uppercase" placeholder="Ej: ABC-123, 24T LAH, Hilux, Fortaleza...">
+                <div class="input-group-append">
+                    <button type="button" wire:click="searchVehicle" class="btn btn-primary">
+                        <i class="fas fa-search mr-1"></i> Buscar
+                    </button>
+                </div>
             </div>
-        @endif
+
+            @if(!empty($vehicles) && !$selectedVehicleId)
+                <div class="list-group mt-2 border shadow-sm">
+                    @foreach($vehicles as $v)
+                        <a href="javascript:void(0)" wire:click="selectVehicle({{ $v->id }})" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
+                            <div>
+                                <span class="badge badge-dark text-sm mr-2">{{ $v->plate }}</span>
+                                <strong class="text-dark">{{ $v->brand }} {{ $v->model }} ({{ $v->year }})</strong>
+                                <small class="text-muted ml-2">• Dueño: {{ $v->customer->name ?? 'N/A' }}</small>
+                            </div>
+                            <span class="badge badge-primary badge-pill">Ver Ficha &rarr;</span>
+                        </a>
+                    @endforeach
+                </div>
+            @endif
+        </div>
     </div>
 
     @if($history && $history['vehicle'])
-        <!-- Vehicle Card -->
-        <div class="bg-white p-5 rounded-xl shadow-sm border border-gray-100 grid grid-cols-1 md:grid-cols-4 gap-4">
-            <div class="border-r border-gray-100 pr-4">
-                <span class="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Placa Identificadora</span>
-                <div class="text-2xl font-black text-indigo-700 mt-0.5">{{ $history['vehicle']->plate }}</div>
-                <div class="text-xs font-semibold text-gray-800 mt-1">{{ $history['vehicle']->brand }} {{ $history['vehicle']->model }} {{ $history['vehicle']->year }}</div>
-                <div class="text-[11px] text-gray-500">Color: {{ $history['vehicle']->color ?? 'No registrado' }}</div>
+        {{-- Ficha del Vehículo --}}
+        <div class="row mb-3">
+            <div class="col-md-3">
+                <div class="card shadow-sm border-left border-primary h-100">
+                    <div class="card-body p-3">
+                        <small class="text-muted text-uppercase font-weight-bold d-block">Placa Identificadora</small>
+                        <h2 class="font-weight-bold text-primary mb-1">{{ $history['vehicle']->plate }}</h2>
+                        <div class="font-weight-bold text-sm">{{ $history['vehicle']->brand }} {{ $history['vehicle']->model }} ({{ $history['vehicle']->year }})</div>
+                        <small class="text-muted">Color: {{ $history['vehicle']->color ?? 'No registrado' }}</small>
+                    </div>
+                </div>
             </div>
-            <div class="border-r border-gray-100 pr-4">
-                <span class="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Propietario / Empresa</span>
-                <div class="text-sm font-bold text-gray-900 mt-1">{{ $history['vehicle']->customer->name ?? 'N/A' }}</div>
-                <div class="text-xs text-gray-500">{{ $history['vehicle']->customer->taxpayer_id ?? '' }}</div>
-                <div class="text-[11px] text-gray-400">{{ $history['vehicle']->customer->phone ?? '' }}</div>
+            <div class="col-md-3">
+                <div class="card shadow-sm border-left border-info h-100">
+                    <div class="card-body p-3">
+                        <small class="text-muted text-uppercase font-weight-bold d-block">Propietario / Empresa</small>
+                        <h5 class="font-weight-bold text-dark mt-1 mb-1">{{ $history['vehicle']->customer->name ?? 'N/A' }}</h5>
+                        <div class="text-muted text-xs">{{ $history['vehicle']->customer->taxpayer_id ?? '' }}</div>
+                        <small class="text-muted">{{ $history['vehicle']->customer->phone ?? '' }}</small>
+                    </div>
+                </div>
             </div>
-            <div class="border-r border-gray-100 pr-4">
-                <span class="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Kilometraje Actual</span>
-                <div class="text-xl font-black text-gray-800 mt-1">{{ number_format($history['vehicle']->current_mileage ?? 0) }} km</div>
-                <div class="text-[11px] text-gray-400 mt-0.5">Total Visitas al Taller: {{ $history['total_visits'] }}</div>
+            <div class="col-md-3">
+                <div class="card shadow-sm border-left border-warning h-100">
+                    <div class="card-body p-3">
+                        <small class="text-muted text-uppercase font-weight-bold d-block">Odómetro Registrado</small>
+                        <h3 class="font-weight-bold text-dark mt-1 mb-0">{{ number_format($history['vehicle']->current_mileage ?? 0) }} km</h3>
+                        <small class="text-muted">Total Visitas al Taller: {{ $history['total_visits'] }}</small>
+                    </div>
+                </div>
             </div>
-            <div>
-                <span class="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Inversión Total en Taller</span>
-                <div class="text-2xl font-black text-emerald-600 mt-1">${{ number_format($history['total_spent'], 2) }}</div>
-                <div class="text-[11px] text-gray-500">Repuestos: ${{ number_format($history['total_parts_spent'], 2) }} | MO: ${{ number_format($history['total_labor_spent'], 2) }}</div>
+            <div class="col-md-3">
+                <div class="card shadow-sm border-left border-success h-100">
+                    <div class="card-body p-3">
+                        <small class="text-muted text-uppercase font-weight-bold d-block">Inversión Total en Taller</small>
+                        <h3 class="font-weight-bold text-success mt-1 mb-0">${{ number_format($history['total_spent'], 2) }}</h3>
+                        <small class="text-muted">Rep: ${{ number_format($history['total_parts_spent'], 2) }} | MO: ${{ number_format($history['total_labor_spent'], 2) }}</small>
+                    </div>
+                </div>
             </div>
         </div>
 
-        <!-- History Timeline / Orders -->
-        <div class="space-y-4">
-            <h2 class="text-base font-bold text-gray-800">Historial Cronológico de Órdenes ({{ $history['orders']->count() }})</h2>
-
-            @forelse($history['orders'] as $ord)
-                <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-5 space-y-3">
-                    <div class="flex flex-col md:flex-row md:items-center justify-between pb-3 border-b border-gray-100 gap-2">
-                        <div class="flex items-center gap-3">
-                            <span class="text-base font-black text-indigo-700">{{ $ord->order_number }}</span>
-                            <span class="text-xs text-gray-400">{{ $ord->created_at->format('d/m/Y H:i') }}</span>
-                            @php
-                                $badges = [
-                                    'reception' => 'bg-amber-100 text-amber-800',
-                                    'in_progress' => 'bg-blue-100 text-blue-800',
-                                    'completed' => 'bg-emerald-100 text-emerald-800',
-                                    'delivered' => 'bg-purple-100 text-purple-800',
-                                    'invoiced' => 'bg-green-100 text-green-800',
-                                ];
-                            @endphp
-                            <span class="px-2 py-0.5 text-[11px] font-bold rounded-full {{ $badges[$ord->status] ?? 'bg-gray-100' }}">
-                                {{ ucfirst($ord->status) }}
-                            </span>
-                        </div>
-                        <div class="flex items-center gap-3">
-                            <div class="text-xs text-right">
-                                <span class="text-gray-400">Total:</span>
-                                <span class="font-black text-gray-900">${{ number_format($ord->total, 2) }}</span>
+        {{-- Lista de Órdenes Históricas --}}
+        <div class="card card-outline card-primary shadow-sm">
+            <div class="card-header p-2">
+                <h5 class="card-title font-weight-bold mb-0">Historial Cronológico de Órdenes ({{ $history['orders']->count() }})</h5>
+            </div>
+            <div class="card-body p-3">
+                @forelse($history['orders'] as $ord)
+                    <div class="card border mb-3 shadow-none">
+                        <div class="card-header bg-light d-flex justify-content-between align-items-center p-2">
+                            <div>
+                                <span class="badge badge-primary font-weight-bold mr-2">{{ $ord->order_number }}</span>
+                                <small class="text-muted mr-2">{{ $ord->created_at->format('d/m/Y H:i') }}</small>
+                                @php
+                                    $badges = [
+                                        'reception' => 'badge-warning',
+                                        'in_progress' => 'badge-primary',
+                                        'completed' => 'badge-success',
+                                        'delivered' => 'badge-info',
+                                        'invoiced' => 'badge-dark',
+                                    ];
+                                @endphp
+                                <span class="badge {{ $badges[$ord->status] ?? 'badge-secondary' }}">{{ ucfirst($ord->status) }}</span>
                             </div>
-                            <a href="{{ route('workshop.work-orders.pdf', $ord->id) }}" target="_blank" class="px-2.5 py-1 bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold text-xs rounded-lg transition inline-flex items-center gap-1">
-                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
-                                Ficha PDF
-                            </a>
+                            <div>
+                                <span class="mr-3 font-weight-bold text-success">Total: ${{ number_format($ord->total, 2) }}</span>
+                                <a href="{{ route('workshop.work-orders.pdf', $ord->id) }}" target="_blank" class="btn btn-outline-danger btn-xs">
+                                    <i class="fas fa-file-pdf"></i> Ficha PDF
+                                </a>
+                            </div>
+                        </div>
+                        <div class="card-body p-3">
+                            <div class="mb-2 p-2 bg-light rounded text-xs">
+                                <strong>Diagnóstico / Motivo de Ingreso:</strong> {{ $ord->initial_diagnosis }}
+                                @if($ord->entry_mileage)
+                                    <span class="text-muted ml-2">• Odómetro: {{ number_format($ord->entry_mileage) }} km</span>
+                                @endif
+                            </div>
+                            <div class="table-responsive">
+                                <table class="table table-sm table-bordered mb-0 text-xs">
+                                    <thead class="bg-light">
+                                        <tr>
+                                            <th>Tipo</th>
+                                            <th>Descripción</th>
+                                            <th>Especialista</th>
+                                            <th class="text-center">Cant.</th>
+                                            <th class="text-right">Precio</th>
+                                            <th class="text-right">Subtotal</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @foreach($ord->items as $it)
+                                            <tr>
+                                                <td><span class="badge {{ $it->type === 'part' ? 'badge-primary' : 'badge-warning' }}">{{ $it->type === 'part' ? 'Repuesto' : 'Mano de Obra' }}</span></td>
+                                                <td>{{ $it->description }}</td>
+                                                <td>{{ $it->mechanic->name ?? '-' }}</td>
+                                                <td class="text-center">{{ $it->quantity }}</td>
+                                                <td class="text-right">${{ number_format($it->unit_price, 2) }}</td>
+                                                <td class="text-right font-weight-bold">${{ number_format($it->subtotal, 2) }}</td>
+                                            </tr>
+                                        @endforeach
+                                    </tbody>
+                                </table>
+                            </div>
                         </div>
                     </div>
-
-                    <div class="text-xs text-gray-700 bg-gray-50/70 p-3 rounded-lg">
-                        <strong class="text-gray-900">Diagnóstico / Motivo de Ingreso:</strong> {{ $ord->initial_diagnosis }}
-                        @if($ord->entry_mileage)
-                            <span class="ml-2 text-gray-400">• Km Entrada: {{ number_format($ord->entry_mileage) }} km</span>
-                        @endif
+                @empty
+                    <div class="text-center py-4 text-muted">
+                        No hay reparaciones u órdenes previas para este vehículo.
                     </div>
-
-                    <!-- Items Breakdown -->
-                    <div class="divide-y divide-gray-100 text-xs">
-                        @foreach($ord->items as $item)
-                            <div class="py-2 flex justify-between items-center">
-                                <div>
-                                    <span class="inline-block w-2 h-2 rounded-full mr-1.5 {{ $item->type === 'part' ? 'bg-blue-500' : 'bg-amber-500' }}"></span>
-                                    <span class="font-medium text-gray-800">{{ $item->description }}</span>
-                                    <span class="text-gray-400 text-[11px] ml-1">({{ $item->quantity }} x ${{ number_format($item->unit_price, 2) }})</span>
-                                    @if($item->mechanic)
-                                        <span class="text-indigo-600 text-[11px] ml-2">Mecánico: {{ $item->mechanic->name }}</span>
-                                    @endif
-                                </div>
-                                <div class="font-bold text-gray-800">
-                                    ${{ number_format($item->subtotal, 2) }}
-                                </div>
-                            </div>
-                        @endforeach
-                    </div>
-                </div>
-            @empty
-                <div class="bg-white p-8 rounded-xl shadow-sm border border-gray-100 text-center text-gray-400 text-sm">
-                    Este vehículo no tiene intervenciones u órdenes registradas hasta el momento.
-                </div>
-            @endforelse
+                @endforelse
+            </div>
         </div>
     @elseif(!empty($searchPlate))
-        <div class="bg-white p-10 rounded-xl shadow-sm border border-gray-100 text-center text-gray-400 text-sm">
+        <div class="card shadow-sm p-4 text-center text-muted">
             No se encontró ningún vehículo con la placa ingresada.
         </div>
     @endif
