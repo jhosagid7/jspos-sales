@@ -258,7 +258,12 @@
                 <div class="modal-body p-4">
                     <div class="row">
                         <div class="col-md-6 form-group">
-                            <label class="font-weight-bold text-xs">Cliente / Propietario <span class="text-danger">*</span></label>
+                            <div class="d-flex justify-content-between align-items-center mb-1">
+                                <label class="font-weight-bold text-xs mb-0">Cliente / Propietario <span class="text-danger">*</span></label>
+                                <button type="button" class="btn btn-outline-primary btn-xs" wire:click="$set('showQuickCustomerModal', true)">
+                                    <i class="fas fa-user-plus mr-1"></i> + Nuevo Cliente
+                                </button>
+                            </div>
                             <select wire:model.live="newOrder.customer_id" class="form-control">
                                 <option value="">Seleccione Cliente...</option>
                                 @foreach($customers as $c)
@@ -268,9 +273,16 @@
                             @error('newOrder.customer_id') <span class="text-danger text-xs">{{ $message }}</span> @enderror
                         </div>
                         <div class="col-md-6 form-group">
-                            <label class="font-weight-bold text-xs">Vehículo <span class="text-danger">*</span></label>
-                            <select wire:model.live="newOrder.vehicle_id" class="form-control">
-                                <option value="">Seleccione Vehículo...</option>
+                            <div class="d-flex justify-content-between align-items-center mb-1">
+                                <label class="font-weight-bold text-xs mb-0">Vehículo <span class="text-danger">*</span></label>
+                                @if(!empty($newOrder['customer_id']))
+                                    <button type="button" class="btn btn-outline-success btn-xs" wire:click="$set('showQuickVehicleModal', true)">
+                                        <i class="fas fa-car mr-1"></i> + Nuevo Vehículo
+                                    </button>
+                                @endif
+                            </div>
+                            <select wire:model.live="newOrder.vehicle_id" class="form-control" {{ empty($newOrder['customer_id']) ? 'disabled' : '' }}>
+                                <option value="">{{ empty($newOrder['customer_id']) ? 'Primero seleccione un cliente...' : 'Seleccione Vehículo...' }}</option>
                                 @foreach($vehicles as $v)
                                     <option value="{{ $v->id }}">{{ $v->plate }} - {{ $v->brand }} {{ $v->model }} ({{ $v->year }})</option>
                                 @endforeach
@@ -314,6 +326,108 @@
                     <button type="button" class="btn btn-secondary btn-sm" wire:click="$set('showCreateModal', false)">Cancelar</button>
                     <button type="button" class="btn btn-primary btn-sm font-weight-bold" wire:click="createWorkOrder">
                         <i class="fas fa-save mr-1"></i> Crear Orden de Servicio
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    @endif
+
+    {{-- MODAL 1.1: NUEVO CLIENTE RÁPIDO --}}
+    @if($showQuickCustomerModal)
+    <div class="modal fade show d-block" style="background: rgba(0,0,0,0.7); z-index: 1060;" tabindex="-1">
+        <div class="modal-dialog modal-md modal-dialog-centered">
+            <div class="modal-content shadow-lg border-0">
+                <div class="modal-header bg-dark text-white">
+                    <h5 class="modal-title font-weight-bold"><i class="fas fa-user-plus mr-2 text-primary"></i> Registrar Nuevo Cliente</h5>
+                    <button type="button" class="close text-white" wire:click="$set('showQuickCustomerModal', false)">&times;</button>
+                </div>
+                <div class="modal-body p-4">
+                    <div class="form-group">
+                        <label class="font-weight-bold text-xs">Nombre o Razón Social <span class="text-danger">*</span></label>
+                        <input type="text" wire:model.live="quickCustomer.name" class="form-control" placeholder="Ej: Transportes Los Andes C.A.">
+                        @error('quickCustomer.name') <span class="text-danger text-xs">{{ $message }}</span> @enderror
+                    </div>
+                    <div class="row">
+                        <div class="col-6 form-group">
+                            <label class="font-weight-bold text-xs">Cédula / RIF <span class="text-danger">*</span></label>
+                            <input type="text" wire:model.live="quickCustomer.taxpayer_id" class="form-control" placeholder="Ej: J-12345678-0">
+                            @error('quickCustomer.taxpayer_id') <span class="text-danger text-xs">{{ $message }}</span> @enderror
+                        </div>
+                        <div class="col-6 form-group">
+                            <label class="font-weight-bold text-xs">Teléfono</label>
+                            <input type="text" wire:model.live="quickCustomer.phone" class="form-control" placeholder="Ej: 0414-1234567">
+                            @error('quickCustomer.phone') <span class="text-danger text-xs">{{ $message }}</span> @enderror
+                        </div>
+                    </div>
+                    <div class="form-group mb-0">
+                        <label class="font-weight-bold text-xs">Dirección</label>
+                        <input type="text" wire:model.live="quickCustomer.address" class="form-control" placeholder="Ej: El Vigía, Sector Las Cumbres">
+                        @error('quickCustomer.address') <span class="text-danger text-xs">{{ $message }}</span> @enderror
+                    </div>
+                </div>
+                <div class="modal-footer bg-light">
+                    <button type="button" class="btn btn-secondary btn-sm" wire:click="$set('showQuickCustomerModal', false)">Cancelar</button>
+                    <button type="button" class="btn btn-primary btn-sm font-weight-bold" wire:click="saveQuickCustomer">
+                        <i class="fas fa-save mr-1"></i> Guardar Cliente y Asignar
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    @endif
+
+    {{-- MODAL 1.2: NUEVO VEHÍCULO RÁPIDO --}}
+    @if($showQuickVehicleModal)
+    <div class="modal fade show d-block" style="background: rgba(0,0,0,0.7); z-index: 1060;" tabindex="-1">
+        <div class="modal-dialog modal-md modal-dialog-centered">
+            <div class="modal-content shadow-lg border-0">
+                <div class="modal-header bg-dark text-white">
+                    <h5 class="modal-title font-weight-bold"><i class="fas fa-car mr-2 text-success"></i> Registrar Nuevo Vehículo</h5>
+                    <button type="button" class="close text-white" wire:click="$set('showQuickVehicleModal', false)">&times;</button>
+                </div>
+                <div class="modal-body p-4">
+                    <div class="row">
+                        <div class="col-6 form-group">
+                            <label class="font-weight-bold text-xs">Placa / Patente <span class="text-danger">*</span></label>
+                            <input type="text" wire:model.live="quickVehicle.plate" class="form-control text-uppercase" placeholder="Ej: AB123CD">
+                            @error('quickVehicle.plate') <span class="text-danger text-xs">{{ $message }}</span> @enderror
+                        </div>
+                        <div class="col-6 form-group">
+                            <label class="font-weight-bold text-xs">Año</label>
+                            <input type="number" wire:model.live="quickVehicle.year" class="form-control" placeholder="Ej: 2018">
+                            @error('quickVehicle.year') <span class="text-danger text-xs">{{ $message }}</span> @enderror
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-6 form-group">
+                            <label class="font-weight-bold text-xs">Marca <span class="text-danger">*</span></label>
+                            <input type="text" wire:model.live="quickVehicle.brand" class="form-control text-uppercase" placeholder="Ej: TOYOTA">
+                            @error('quickVehicle.brand') <span class="text-danger text-xs">{{ $message }}</span> @enderror
+                        </div>
+                        <div class="col-6 form-group">
+                            <label class="font-weight-bold text-xs">Modelo <span class="text-danger">*</span></label>
+                            <input type="text" wire:model.live="quickVehicle.model" class="form-control text-uppercase" placeholder="Ej: COROLLA">
+                            @error('quickVehicle.model') <span class="text-danger text-xs">{{ $message }}</span> @enderror
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-6 form-group mb-0">
+                            <label class="font-weight-bold text-xs">Color</label>
+                            <input type="text" wire:model.live="quickVehicle.color" class="form-control text-uppercase" placeholder="Ej: BLANCO">
+                            @error('quickVehicle.color') <span class="text-danger text-xs">{{ $message }}</span> @enderror
+                        </div>
+                        <div class="col-6 form-group mb-0">
+                            <label class="font-weight-bold text-xs">Kilometraje Actual</label>
+                            <input type="number" wire:model.live="quickVehicle.current_mileage" class="form-control" placeholder="Ej: 85000">
+                            @error('quickVehicle.current_mileage') <span class="text-danger text-xs">{{ $message }}</span> @enderror
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer bg-light">
+                    <button type="button" class="btn btn-secondary btn-sm" wire:click="$set('showQuickVehicleModal', false)">Cancelar</button>
+                    <button type="button" class="btn btn-success btn-sm font-weight-bold" wire:click="saveQuickVehicle">
+                        <i class="fas fa-save mr-1"></i> Guardar Vehículo y Asignar
                     </button>
                 </div>
             </div>

@@ -7,13 +7,13 @@ use App\Models\Customer;
 use App\Models\User;
 use App\Models\Vehicle;
 use App\Models\WorkOrder;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Livewire\Livewire;
 use Tests\TestCase;
 
 class WorkshopLivewireTest extends TestCase
 {
-    use RefreshDatabase;
+    use DatabaseTransactions;
 
     protected function createCustomer(array $attributes = []): Customer
     {
@@ -196,5 +196,81 @@ class WorkshopLivewireTest extends TestCase
         $this->assertEquals('invoiced', $order->status);
         $this->assertNotNull($order->sale_id);
         $this->assertEquals(10050, $order->exit_mileage);
+    }
+
+    public function test_can_create_quick_customer_and_quick_vehicle_from_work_orders_modal(): void
+    {
+        $user = User::factory()->create();
+
+        $component = Livewire::actingAs($user)
+            ->test(WorkOrders::class)
+            ->set('quickCustomer.name', 'INVERSIONES SAN CRISTOBAL')
+            ->set('quickCustomer.taxpayer_id', 'J-99887766-5')
+            ->set('quickCustomer.phone', '0424-7654321')
+            ->call('saveQuickCustomer')
+            ->assertHasNoErrors();
+
+        $this->assertDatabaseHas('customers', [
+            'name' => 'INVERSIONES SAN CRISTOBAL',
+            'taxpayer_id' => 'J-99887766-5',
+        ]);
+
+        $createdCustomer = Customer::where('taxpayer_id', 'J-99887766-5')->first();
+        $this->assertNotNull($createdCustomer);
+        $this->assertEquals($createdCustomer->id, $component->get('newOrder')['customer_id']);
+
+        $component
+            ->set('quickVehicle.plate', 'RAP-999')
+            ->set('quickVehicle.brand', 'Ford')
+            ->set('quickVehicle.model', 'F-350 Super Duty')
+            ->set('quickVehicle.year', 2016)
+            ->set('quickVehicle.current_mileage', 120500)
+            ->call('saveQuickVehicle')
+            ->assertHasNoErrors();
+
+        $this->assertDatabaseHas('vehicles', [
+            'customer_id' => $createdCustomer->id,
+            'plate' => 'RAP-999',
+            'brand' => 'FORD',
+            'model' => 'F-350 SUPER DUTY',
+            'year' => 2016,
+            'current_mileage' => 120500,
+        ]);
+
+        $createdVehicle = Vehicle::where('plate', 'RAP-999')->first();
+        $this->assertNotNull($createdVehicle);
+        $this->assertEquals($createdVehicle->id, $component->get('newOrder')['vehicle_id']);
+        $this->assertEquals(120500, $component->get('newOrder')['entry_mileage']);
+    }
+
+    public function test_can_manage_customer_vehicles_from_customer_component(): void
+    {
+        $user = User::factory()->create();
+        $customer = $this->createCustomer();
+
+        $component = Livewire::actingAs($user)
+            ->test(\App\Livewire\Customers::class)
+            ->call('Edit', $customer->id)
+            ->set('newVehicle.plate', 'MEC-123')
+            ->set('newVehicle.brand', 'Chevrolet')
+            ->set('newVehicle.model', 'Silverado')
+            ->set('newVehicle.year', 2015)
+            ->set('newVehicle.current_mileage', 210000)
+            ->call('addVehicle')
+            ->assertHasNoErrors();
+
+        $this->assertDatabaseHas('vehicles', [
+            'customer_id' => $customer->id,
+            'plate' => 'MEC-123',
+            'brand' => 'CHEVROLET',
+            'model' => 'SILVERADO',
+        ]);
+
+        $vehicle = Vehicle::where('plate', 'MEC-123')->first();
+        $component->call('deleteVehicle', $vehicle->id);
+
+        $this->assertSoftDeleted('vehicles', [
+            'id' => $vehicle->id,
+        ]);
     }
 }

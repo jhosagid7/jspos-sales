@@ -46,9 +46,27 @@ class WorkOrders extends Component
         'notes' => '',
     ];
 
+    public array $quickCustomer = [
+        'name' => '',
+        'taxpayer_id' => '',
+        'phone' => '',
+        'address' => '',
+    ];
+
+    public array $quickVehicle = [
+        'plate' => '',
+        'brand' => '',
+        'model' => '',
+        'year' => '',
+        'color' => '',
+        'current_mileage' => '',
+    ];
+
     public bool $showCreateModal = false;
     public bool $showItemModal = false;
     public bool $showBillingModal = false;
+    public bool $showQuickCustomerModal = false;
+    public bool $showQuickVehicleModal = false;
 
     protected function rules(): array
     {
@@ -161,6 +179,76 @@ class WorkOrders extends Component
     public function createWorkOrder(): void
     {
         $this->storeOrder();
+    }
+
+    public function saveQuickCustomer(): void
+    {
+        $this->validate([
+            'quickCustomer.name' => 'required|string|min:3|max:255',
+            'quickCustomer.taxpayer_id' => 'required|string|min:3|max:50|unique:customers,taxpayer_id',
+            'quickCustomer.phone' => 'nullable|string|max:50',
+            'quickCustomer.address' => 'nullable|string|max:255',
+        ]);
+
+        $customer = Customer::create([
+            'name' => $this->quickCustomer['name'],
+            'taxpayer_id' => $this->quickCustomer['taxpayer_id'],
+            'phone' => $this->quickCustomer['phone'] ?? '',
+            'address' => $this->quickCustomer['address'] ?? '',
+        ]);
+
+        $this->newOrder['customer_id'] = $customer->id;
+        $this->newOrder['vehicle_id'] = null;
+
+        $this->quickCustomer = [
+            'name' => '',
+            'taxpayer_id' => '',
+            'phone' => '',
+            'address' => '',
+        ];
+
+        $this->showQuickCustomerModal = false;
+        $this->dispatch('customer-created', customerId: $customer->id);
+    }
+
+    public function saveQuickVehicle(): void
+    {
+        $this->validate([
+            'newOrder.customer_id' => 'required|exists:customers,id',
+            'quickVehicle.plate' => 'required|string|min:3|max:20|unique:vehicles,plate',
+            'quickVehicle.brand' => 'required|string|min:2|max:100',
+            'quickVehicle.model' => 'required|string|min:2|max:100',
+            'quickVehicle.year' => 'nullable|integer|min:1950|max:' . (date('Y') + 1),
+            'quickVehicle.color' => 'nullable|string|max:50',
+            'quickVehicle.current_mileage' => 'nullable|integer|min:0',
+        ]);
+
+        $vehicle = Vehicle::create([
+            'customer_id' => $this->newOrder['customer_id'],
+            'plate' => $this->quickVehicle['plate'],
+            'brand' => mb_strtoupper($this->quickVehicle['brand'], 'UTF-8'),
+            'model' => mb_strtoupper($this->quickVehicle['model'], 'UTF-8'),
+            'year' => !empty($this->quickVehicle['year']) ? (int)$this->quickVehicle['year'] : null,
+            'color' => !empty($this->quickVehicle['color']) ? mb_strtoupper($this->quickVehicle['color'], 'UTF-8') : null,
+            'current_mileage' => !empty($this->quickVehicle['current_mileage']) ? (int)$this->quickVehicle['current_mileage'] : 0,
+        ]);
+
+        $this->newOrder['vehicle_id'] = $vehicle->id;
+        if (!empty($vehicle->current_mileage) && empty($this->newOrder['entry_mileage'])) {
+            $this->newOrder['entry_mileage'] = $vehicle->current_mileage;
+        }
+
+        $this->quickVehicle = [
+            'plate' => '',
+            'brand' => '',
+            'model' => '',
+            'year' => '',
+            'color' => '',
+            'current_mileage' => '',
+        ];
+
+        $this->showQuickVehicleModal = false;
+        $this->dispatch('vehicle-created', vehicleId: $vehicle->id);
     }
 
     public function billOrder(?int $orderId = null, ?string $paymentMethod = null, ?int $exitMileage = null): void

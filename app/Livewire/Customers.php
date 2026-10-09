@@ -23,6 +23,17 @@ class Customers extends Component
     public $discountRules = []; // Array of discount rules for this customer
     public $creditScoringResult = [];
 
+    // Workshop Addon: Customer Vehicles
+    public $customerVehicles = [];
+    public $newVehicle = [
+        'plate' => '',
+        'brand' => '',
+        'model' => '',
+        'year' => '',
+        'color' => '',
+        'current_mileage' => '',
+    ];
+
     protected $rules = [
         'customer.name' => 'required|max:200|unique:customers,name',
         'customer.taxpayer_id' => 'nullable|max:45',
@@ -203,6 +214,9 @@ class Customers extends Component
 
         // Load discount rules
         $this->loadDiscountRules();
+
+        // Load vehicles if workshop addon active
+        $this->loadVehicles();
 
         // Run credit scoring evaluation
         try {
@@ -477,6 +491,72 @@ class Customers extends Component
                     'description' => $rule['description'] ?? ''
                 ]);
             }
+        }
+    }
+
+    // Workshop Addon: Vehicle Management
+    public function loadVehicles()
+    {
+        if ($this->customer->id) {
+            $this->customerVehicles = \App\Models\Vehicle::where('customer_id', $this->customer->id)
+                ->orderBy('created_at', 'desc')
+                ->get();
+        } else {
+            $this->customerVehicles = [];
+        }
+    }
+
+    public function addVehicle()
+    {
+        if (!$this->customer->id) {
+            $this->dispatch('noty', msg: 'Debe guardar el cliente primero antes de asignarle vehículos');
+            return;
+        }
+
+        $this->validate([
+            'newVehicle.plate' => 'required|string|min:3|max:20|unique:vehicles,plate',
+            'newVehicle.brand' => 'required|string|min:2|max:100',
+            'newVehicle.model' => 'required|string|min:2|max:100',
+            'newVehicle.year' => 'nullable|integer|min:1950|max:' . (date('Y') + 1),
+            'newVehicle.color' => 'nullable|string|max:50',
+            'newVehicle.current_mileage' => 'nullable|integer|min:0',
+        ], [
+            'newVehicle.plate.required' => 'La placa es obligatoria',
+            'newVehicle.plate.unique' => 'Esta placa ya se encuentra registrada',
+            'newVehicle.brand.required' => 'La marca es obligatoria',
+            'newVehicle.model.required' => 'El modelo es obligatorio',
+        ]);
+
+        \App\Models\Vehicle::create([
+            'customer_id' => $this->customer->id,
+            'plate' => $this->newVehicle['plate'],
+            'brand' => mb_strtoupper($this->newVehicle['brand'], 'UTF-8'),
+            'model' => mb_strtoupper($this->newVehicle['model'], 'UTF-8'),
+            'year' => !empty($this->newVehicle['year']) ? (int)$this->newVehicle['year'] : null,
+            'color' => !empty($this->newVehicle['color']) ? mb_strtoupper($this->newVehicle['color'], 'UTF-8') : null,
+            'current_mileage' => !empty($this->newVehicle['current_mileage']) ? (int)$this->newVehicle['current_mileage'] : 0,
+        ]);
+
+        $this->newVehicle = [
+            'plate' => '',
+            'brand' => '',
+            'model' => '',
+            'year' => '',
+            'color' => '',
+            'current_mileage' => '',
+        ];
+
+        $this->loadVehicles();
+        $this->dispatch('noty', msg: 'VEHÍCULO REGISTRADO Y ASIGNADO CON ÉXITO');
+    }
+
+    public function deleteVehicle($vehicleId)
+    {
+        $vehicle = \App\Models\Vehicle::where('customer_id', $this->customer->id)->find($vehicleId);
+        if ($vehicle) {
+            $vehicle->delete();
+            $this->loadVehicles();
+            $this->dispatch('noty', msg: 'VEHÍCULO ELIMINADO CON ÉXITO');
         }
     }
 
