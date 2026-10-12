@@ -457,6 +457,9 @@ class WorkOrders extends Component
             ? Product::find($this->newItem['product_id'])
             : null;
 
+        $currencies = \App\Models\Currency::all();
+        $sysConfig = \App\Models\Configuration::first();
+
         return view('livewire.workshop.work-orders', [
             'orders' => $orders,
             'selectedOrder' => $selectedOrder,
@@ -468,6 +471,8 @@ class WorkOrders extends Component
             'selectedMechanicModel' => $selectedMechanicModel,
             'products' => $products,
             'selectedProductModel' => $selectedProductModel,
+            'currencies' => $currencies,
+            'sysConfig' => $sysConfig,
         ]);
     }
 }

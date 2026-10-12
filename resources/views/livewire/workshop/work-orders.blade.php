@@ -624,16 +624,23 @@
 
                             @if($selectedProductModel)
                                 {{-- TARJETA DE REPUESTO SELECCIONADO --}}
-                                <div class="p-2 border rounded bg-light d-flex justify-content-between align-items-center shadow-sm">
+                                @php
+                                    $selPriceUSD = (float)$newItem['unit_price'];
+                                    $bsCurr = $currencies->first(fn($c) => in_array($c->code, ['VES', 'VED']) || str_contains($c->symbol, 'Bs'));
+                                    $copCurr = $currencies->firstWhere('code', 'COP');
+                                    $bcvRate = $sysConfig && $sysConfig->bcv_rate > 0 ? (float)$sysConfig->bcv_rate : 0;
+                                    $selPriceBCV = ($bsCurr && $bcvRate > 0) ? (($selPriceUSD * (float)$bsCurr->exchange_rate) / $bcvRate) : 0;
+                                @endphp
+                                <div class="p-3 border rounded bg-light d-flex justify-content-between align-items-center shadow-sm">
                                     <div class="d-flex align-items-center">
                                         <img src="{{ !empty($selectedProductModel->photo) ? asset($selectedProductModel->photo) : asset('noimage.jpg') }}" 
                                              alt="{{ $selectedProductModel->name }}" 
-                                             class="rounded mr-2 border" 
+                                             class="rounded mr-3 border bg-white" 
                                              onerror="this.src='{{ asset('noimage.jpg') }}'; this.onerror=null;" 
-                                             style="width: 48px; height: 48px; object-fit: cover;">
+                                             style="width: 54px; height: 54px; object-fit: cover;">
                                         <div>
-                                            <div class="font-weight-bold text-dark text-sm">{{ $selectedProductModel->name }}</div>
-                                            <div class="text-xs text-muted">
+                                            <div class="font-weight-bold text-dark" style="font-size: 0.95rem;">{{ $selectedProductModel->name }}</div>
+                                            <div class="text-xs text-muted mt-0.5">
                                                 <span class="badge badge-secondary mr-1">SKU: {{ $selectedProductModel->sku }}</span>
                                                 <span class="badge {{ $selectedProductModel->stock_qty > 0 ? 'badge-success' : 'badge-danger' }}">
                                                     Stock: {{ $selectedProductModel->stock_qty }}
@@ -642,11 +649,23 @@
                                         </div>
                                     </div>
                                     <div class="text-right d-flex align-items-center">
-                                        <div class="mr-2">
-                                            <small class="text-muted d-block text-xs">Precio Asignado</small>
-                                            <span class="font-weight-bold text-success text-sm">${{ number_format($newItem['unit_price'], 2) }}</span>
+                                        <div class="mr-3 text-right">
+                                            <span class="font-weight-bold text-dark d-block" style="font-size: 1.15rem;">${{ formatMoney($selPriceUSD) }}</span>
+                                            @if($selPriceBCV > 0)
+                                                <span class="text-danger font-weight-bold d-block" style="font-size: 0.75rem;">
+                                                    ${{ formatMoney($selPriceBCV) }} USD/BCV
+                                                </span>
+                                            @endif
+                                            <div class="text-muted" style="font-size: 0.70rem; line-height: 1.15;">
+                                                @if($bsCurr)
+                                                    <div>{{ $bsCurr->symbol }}{{ formatMoney($selPriceUSD * (float)$bsCurr->exchange_rate) }} {{ $bsCurr->code }}</div>
+                                                @endif
+                                                @if($copCurr)
+                                                    <div>{{ $copCurr->symbol }}{{ formatMoney($selPriceUSD * (float)$copCurr->exchange_rate) }} {{ $copCurr->code }}</div>
+                                                @endif
+                                            </div>
                                         </div>
-                                        <button type="button" class="btn btn-outline-danger btn-xs" wire:click="clearSelectedProduct" title="Cambiar Repuesto">
+                                        <button type="button" class="btn btn-outline-danger btn-sm" wire:click="clearSelectedProduct" title="Cambiar Repuesto">
                                             <i class="fas fa-times"></i> Cambiar
                                         </button>
                                     </div>
@@ -674,12 +693,20 @@
 
                                     {{-- RESULTADOS DE BÚSQUEDA --}}
                                     @if(strlen(trim($productSearch)) > 0)
+                                        @php
+                                            $bsCurr = $currencies->first(fn($c) => in_array($c->code, ['VES', 'VED']) || str_contains($c->symbol, 'Bs'));
+                                            $copCurr = $currencies->firstWhere('code', 'COP');
+                                            $bcvRate = $sysConfig && $sysConfig->bcv_rate > 0 ? (float)$sysConfig->bcv_rate : 0;
+                                        @endphp
+
                                         @if($productViewMode === 'list')
-                                            {{-- MODO LISTA (CON MINIATURAS) --}}
-                                            <div class="list-group position-absolute w-100 shadow-lg border mt-1" style="z-index: 1060; max-height: 260px; overflow-y: auto;">
+                                            {{-- MODO LISTA (CON MINIATURAS Y MULTIMONEDA) --}}
+                                            <div class="list-group position-absolute w-100 shadow-lg border mt-1" style="z-index: 1060; max-height: 280px; overflow-y: auto;">
                                                 @forelse($products as $p)
                                                     @php
                                                         $stockClass = $p->stock_qty <= 0 ? 'badge-danger' : ($p->stock_qty <= ($p->low_stock ?: 5) ? 'badge-warning' : 'badge-success');
+                                                        $priceUSD = (float)$p->price;
+                                                        $priceBCV = ($bsCurr && $bcvRate > 0) ? (($priceUSD * (float)$bsCurr->exchange_rate) / $bcvRate) : 0;
                                                     @endphp
                                                     <button type="button" 
                                                             class="list-group-item list-group-item-action p-2 text-left d-flex justify-content-between align-items-center"
@@ -687,9 +714,9 @@
                                                         <div class="d-flex align-items-center">
                                                             <img src="{{ !empty($p->photo) ? asset($p->photo) : asset('noimage.jpg') }}" 
                                                                  alt="{{ $p->name }}" 
-                                                                 class="rounded mr-2 border" 
+                                                                 class="rounded mr-2 border bg-white" 
                                                                  onerror="this.src='{{ asset('noimage.jpg') }}'; this.onerror=null;" 
-                                                                 style="width: 38px; height: 38px; object-fit: cover;">
+                                                                 style="width: 44px; height: 44px; object-fit: cover;">
                                                             <div>
                                                                 <span class="font-weight-bold text-dark text-xs d-block">{{ $p->name }}</span>
                                                                 <small class="text-muted text-xs">
@@ -699,8 +726,20 @@
                                                             </div>
                                                         </div>
                                                         <div class="text-right">
-                                                            <span class="font-weight-bold text-success text-xs d-block">${{ number_format($p->price, 2) }}</span>
-                                                            <span class="badge badge-primary text-xs"><i class="fas fa-plus"></i> Seleccionar</span>
+                                                            <span class="font-weight-bold text-dark text-xs d-block" style="font-size: 0.9rem;">${{ formatMoney($priceUSD) }}</span>
+                                                            @if($priceBCV > 0)
+                                                                <span class="text-danger font-weight-bold d-block" style="font-size: 0.72rem;">
+                                                                    ${{ formatMoney($priceBCV) }} USD/BCV
+                                                                </span>
+                                                            @endif
+                                                            <div class="text-muted" style="font-size: 0.68rem; line-height: 1.1;">
+                                                                @if($bsCurr)
+                                                                    <span>{{ $bsCurr->symbol }}{{ formatMoney($priceUSD * (float)$bsCurr->exchange_rate) }} {{ $bsCurr->code }}</span>
+                                                                @endif
+                                                                @if($copCurr)
+                                                                    <span class="ml-1">{{ $copCurr->symbol }}{{ formatMoney($priceUSD * (float)$copCurr->exchange_rate) }} {{ $copCurr->code }}</span>
+                                                                @endif
+                                                            </div>
                                                         </div>
                                                     </button>
                                                 @empty
@@ -710,35 +749,52 @@
                                                 @endforelse
                                             </div>
                                         @else
-                                            {{-- MODO CUADRÍCULA (GRID CON TARJETAS E IMÁGENES) --}}
-                                            <div class="position-absolute w-100 shadow-lg border bg-white p-2 mt-1 rounded" style="z-index: 1060; max-height: 320px; overflow-y: auto;">
+                                            {{-- MODO CUADRÍCULA (GRID EXACTO AL POS CON FOTOS, STOCK Y MULTIMONEDA) --}}
+                                            <div class="position-absolute w-100 shadow-lg border bg-white p-2 mt-1 rounded" style="z-index: 1060; max-height: 340px; overflow-y: auto;">
                                                 <div class="row no-gutters">
                                                     @forelse($products as $p)
                                                         @php
                                                             $stockClass = $p->stock_qty <= 0 ? 'badge-danger' : ($p->stock_qty <= ($p->low_stock ?: 5) ? 'badge-warning' : 'badge-success');
+                                                            $priceUSD = (float)$p->price;
+                                                            $priceBCV = ($bsCurr && $bcvRate > 0) ? (($priceUSD * (float)$bsCurr->exchange_rate) / $bcvRate) : 0;
                                                         @endphp
                                                         <div class="col-6 col-md-4 p-1">
-                                                            <div class="card h-100 mb-0 border shadow-sm p-1 text-center" 
+                                                            <div class="card h-100 mb-0 border shadow-sm p-2 text-left" 
                                                                  wire:click="onProductSelected({{ $p->id }})" 
-                                                                 style="cursor: pointer; transition: transform 0.15s ease;"
-                                                                 onmouseover="this.style.borderColor='#17a2b8'; this.style.transform='scale(1.02)';"
-                                                                 onmouseout="this.style.borderColor='#dee2e6'; this.style.transform='scale(1)';">
-                                                                <div class="position-relative">
+                                                                 style="cursor: pointer; transition: all 0.15s ease;"
+                                                                 onmouseover="this.style.borderColor='#007bff'; this.style.boxShadow='0 4px 12px rgba(0,0,0,0.12)';"
+                                                                 onmouseout="this.style.borderColor='#dee2e6'; this.style.boxShadow='none';">
+                                                                <div class="position-relative text-center mb-1">
                                                                     <img src="{{ !empty($p->photo) ? asset($p->photo) : asset('noimage.jpg') }}" 
                                                                          alt="{{ $p->name }}" 
-                                                                         class="img-fluid rounded mb-1" 
+                                                                         class="img-fluid rounded" 
                                                                          onerror="this.src='{{ asset('noimage.jpg') }}'; this.onerror=null;" 
-                                                                         style="height: 80px; width: 100%; object-fit: cover;">
-                                                                    <span class="badge {{ $stockClass }} position-absolute" style="top: 4px; right: 4px; font-size: 10px;">
+                                                                         style="height: 85px; width: 100%; object-fit: cover;">
+                                                                    <span class="badge {{ $stockClass }} position-absolute font-weight-bold" style="top: 4px; right: 4px; font-size: 10px; border-radius: 10px;">
                                                                         Stock: {{ $p->stock_qty }}
                                                                     </span>
                                                                 </div>
                                                                 <div class="font-weight-bold text-dark text-xs text-truncate" title="{{ $p->name }}">
                                                                     {{ $p->name }}
                                                                 </div>
-                                                                <div class="text-muted text-xs small">{{ $p->sku }}</div>
-                                                                <div class="font-weight-bold text-success text-xs mt-1">
-                                                                    ${{ number_format($p->price, 2) }}
+                                                                <div class="text-muted text-xs small mb-1">{{ $p->sku }}</div>
+                                                                <div class="mt-auto pt-1 border-top">
+                                                                    <div class="font-weight-bold text-dark" style="font-size: 0.95rem;">
+                                                                        ${{ formatMoney($priceUSD) }}
+                                                                    </div>
+                                                                    @if($priceBCV > 0)
+                                                                        <div class="text-danger font-weight-bold" style="font-size: 0.72rem; line-height: 1.1;">
+                                                                            ${{ formatMoney($priceBCV) }} USD/BCV
+                                                                        </div>
+                                                                    @endif
+                                                                    <div class="text-muted mt-0.5" style="font-size: 0.67rem; line-height: 1.15;">
+                                                                        @if($bsCurr)
+                                                                            <div>{{ $bsCurr->symbol }}{{ formatMoney($priceUSD * (float)$bsCurr->exchange_rate) }} {{ $bsCurr->code }}</div>
+                                                                        @endif
+                                                                        @if($copCurr)
+                                                                            <div>{{ $copCurr->symbol }}{{ formatMoney($priceUSD * (float)$copCurr->exchange_rate) }} {{ $copCurr->code }}</div>
+                                                                        @endif
+                                                                    </div>
                                                                 </div>
                                                             </div>
                                                         </div>
@@ -753,7 +809,7 @@
                                     @endif
                                 </div>
                                 <small class="text-muted text-xs mt-1 d-block">
-                                    <i class="fas fa-info-circle mr-1"></i> Si el cliente tiene recargo, flete o margen diferencial configurado, el precio se calcula automáticamente.
+                                    <i class="fas fa-info-circle mr-1"></i> Precios calculados con la tasa activa del sistema. Si el cliente tiene margen diferencial, se aplica automáticamente al seleccionarlo.
                                 </small>
                             @endif
                         </div>
