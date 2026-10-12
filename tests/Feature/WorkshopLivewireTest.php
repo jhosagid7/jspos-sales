@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Livewire\Workshop\WorkOrders;
 use App\Models\Customer;
+use App\Models\Product;
 use App\Models\User;
 use App\Models\Vehicle;
 use App\Models\WorkOrder;
@@ -349,4 +350,84 @@ class WorkshopLivewireTest extends TestCase
             ->call('clearMechanic')
             ->assertSet('newOrder.mechanic_id', null);
     }
+
+    public function test_parts_modal_supports_smart_search_and_customer_differential_pricing(): void
+    {
+        $user = User::factory()->create();
+        $customer = $this->createCustomer(['name' => 'DISTRIBUIDORA ANDINA C.A.', 'taxpayer_id' => 'J-12399988-1']);
+        $vehicle = $this->createVehicle($customer);
+
+        // Customer differential config: +10% commission, +5% markup, +5% exchange diff
+        \App\Models\CustomerConfig::create([
+            'customer_id' => $customer->id,
+            'commission_percent' => 10,
+            'base_markup_percent' => 5,
+            'freight_percent' => 0,
+            'exchange_diff_percent' => 5,
+        ]);
+
+        $order = WorkOrder::create([
+            'customer_id' => $customer->id,
+            'vehicle_id' => $vehicle->id,
+            'user_id' => $user->id,
+            'entry_mileage' => 80000,
+            'initial_diagnosis' => 'Mantenimiento Preventivo',
+        ]);
+
+        $category = \App\Models\Category::firstOrCreate(['name' => 'REPUESTOS']);
+        $supplier = \App\Models\Supplier::firstOrCreate(['name' => 'PROVEEDOR REPUESTOS']);
+
+        $p1 = Product::create([
+            'name' => 'FILTRO ACEITE MOTOR TOYOTA YARIS',
+            'sku' => 'FLT-TOY-01',
+            'price' => 10.00,
+            'cost' => 5.00,
+            'stock_qty' => 15,
+            'low_stock' => 5,
+            'category_id' => $category->id,
+            'supplier_id' => $supplier->id,
+            'status' => 'available',
+        ]);
+
+        $p2 = Product::create([
+            'name' => 'PASTILLAS DE FRENO DELANTERAS COROLLA',
+            'sku' => 'PST-COR-02',
+            'price' => 25.00,
+            'cost' => 12.00,
+            'stock_qty' => 8,
+            'low_stock' => 3,
+            'category_id' => $category->id,
+            'supplier_id' => $supplier->id,
+            'status' => 'available',
+        ]);
+
+        Livewire::actingAs($user)
+            ->test(WorkOrders::class)
+            ->set('selectedOrderId', $order->id)
+            ->call('openItemModal')
+            ->assertSet('showItemModal', true)
+            ->set('newItem.type', 'part')
+            // Smart token search in any order (sku or words)
+            ->set('productSearch', 'yaris filtro')
+            ->assertSee('FILTRO ACEITE MOTOR TOYOTA YARIS')
+            ->assertDontSee('PASTILLAS DE FRENO DELANTERAS COROLLA')
+            // Switch view modes (list <-> grid)
+            ->set('productViewMode', 'grid')
+            ->assertSet('productViewMode', 'grid')
+            ->set('productViewMode', 'list')
+            ->assertSet('productViewMode', 'list')
+            // Select product and check differential price calculation
+            ->call('onProductSelected', $p1->id)
+            ->assertSet('newItem.product_id', $p1->id)
+            ->assertSet('newItem.description', 'FILTRO ACEITE MOTOR TOYOTA YARIS')
+            // With customer differential, price should be higher than base 10.00
+            ->assertSet('newItem.unit_price', function ($price) {
+                return (float)$price > 10.00;
+            })
+            // Can clear selected product to choose another
+            ->call('clearSelectedProduct')
+            ->assertSet('newItem.product_id', null)
+            ->assertSet('newItem.unit_price', 0.0);
+    }
 }
+

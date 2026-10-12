@@ -73,6 +73,10 @@ class WorkOrders extends Component
     public string $vehicleSearch = '';
     public string $mechanicSearch = '';
 
+    // Smart Filter Properties for add item modal (parts)
+    public string $productSearch = '';
+    public string $productViewMode = 'list'; // 'list' or 'grid'
+
     protected function rules(): array
     {
         return [
@@ -330,9 +334,33 @@ class WorkOrders extends Component
         $this->dispatch('order-billed', orderId: $targetId);
     }
 
+    public function openItemModal(): void
+    {
+        $this->productSearch = '';
+        $this->newItem = [
+            'type' => 'labor',
+            'description' => '',
+            'quantity' => 1,
+            'unit_price' => 0.00,
+            'unit_cost' => 0.00,
+            'product_id' => null,
+            'mechanic_id' => null,
+            'mechanic_commission_percentage' => 0.00,
+        ];
+
+        // Default view mode from Configuration
+        $config = \App\Models\Configuration::first();
+        if ($config && !empty($config->sales_view_mode)) {
+            $this->productViewMode = $config->sales_view_mode;
+        }
+
+        $this->showItemModal = true;
+    }
+
     public function onProductSelected($productId): void
     {
         if (!$productId) {
+            $this->newItem['product_id'] = null;
             return;
         }
 
@@ -340,9 +368,30 @@ class WorkOrders extends Component
         if ($product) {
             $this->newItem['product_id'] = $product->id;
             $this->newItem['description'] = $product->name;
-            $this->newItem['unit_price'] = (float)$product->price;
             $this->newItem['unit_cost'] = (float)$product->cost;
+
+            // Calculate customer differential price if order has customer
+            $price = (float)$product->price;
+            if ($this->selectedOrderId) {
+                $order = WorkOrder::with('customer.customerConfigs')->find($this->selectedOrderId);
+                if ($order && $order->customer) {
+                    $calcService = app(\App\Services\PriceCalculatorService::class);
+                    $priceData = $calcService->calculate($product, null, $order->customer);
+                    $price = (float)($priceData['final_price'] ?? $priceData['net_price'] ?? $product->price);
+                }
+            }
+
+            $this->newItem['unit_price'] = round($price, 2);
         }
+    }
+
+    public function clearSelectedProduct(): void
+    {
+        $this->newItem['product_id'] = null;
+        $this->newItem['description'] = '';
+        $this->newItem['unit_price'] = 0.00;
+        $this->newItem['unit_cost'] = 0.00;
+        $this->productSearch = '';
     }
 
     public function render()
@@ -357,7 +406,7 @@ class WorkOrders extends Component
         $orders = $query->latest()->paginate(10);
 
         $selectedOrder = $this->selectedOrderId
-            ? WorkOrder::with(['customer', 'vehicle', 'mechanic', 'items.mechanic', 'items.product'])->find($this->selectedOrderId)
+            ? WorkOrder::with(['customer.customerConfigs', 'vehicle', 'mechanic', 'items.mechanic', 'items.product'])->find($this->selectedOrderId)
             : null;
 
         $customersQuery = Customer::query();
@@ -396,7 +445,17 @@ class WorkOrders extends Component
             ? User::find($this->newOrder['mechanic_id'])
             : null;
 
-        $products = Product::where('status', 'available')->orderBy('name')->take(100)->get();
+        // Products query with smart search
+        $productsQuery = Product::where('status', 'available');
+        if (!empty($this->productSearch)) {
+            $productsQuery->search($this->productSearch);
+        }
+        $products = $productsQuery->orderBy('name')->take(24)->get();
+
+        // If an item is already selected, load its model
+        $selectedProductModel = !empty($this->newItem['product_id'])
+            ? Product::find($this->newItem['product_id'])
+            : null;
 
         return view('livewire.workshop.work-orders', [
             'orders' => $orders,
@@ -408,6 +467,7 @@ class WorkOrders extends Component
             'mechanics' => $mechanics,
             'selectedMechanicModel' => $selectedMechanicModel,
             'products' => $products,
+            'selectedProductModel' => $selectedProductModel,
         ]);
     }
 }

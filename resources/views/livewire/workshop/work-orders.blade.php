@@ -142,7 +142,7 @@
                                 <i class="fas fa-file-pdf"></i> PDF
                             </a>
                             @if($selectedOrder->status !== 'invoiced')
-                                <button wire:click="$set('showItemModal', true)" class="btn btn-outline-primary btn-sm" title="Agregar Mano de Obra o Repuestos">
+                                <button wire:click="openItemModal" class="btn btn-outline-primary btn-sm" title="Agregar Mano de Obra o Repuestos">
                                     <i class="fas fa-plus"></i> Ítem
                                 </button>
                                 <button wire:click="$set('showBillingModal', true)" class="btn btn-success btn-sm ml-1" title="Cobrar / Facturar en Caja">
@@ -565,7 +565,6 @@
                             <input type="number" wire:model.live="quickVehicle.current_mileage" class="form-control" placeholder="Ej: 85000">
                             @error('quickVehicle.current_mileage') <span class="text-danger text-xs">{{ $message }}</span> @enderror
                         </div>
-                    </div>
                 </div>
                 <div class="modal-footer bg-light">
                     <button type="button" class="btn btn-secondary btn-sm" wire:click="$set('showQuickVehicleModal', false)">Cancelar</button>
@@ -581,18 +580,18 @@
     {{-- MODAL 2: AGREGAR ÍTEM (REPUESTO O MANO DE OBRA) --}}
     @if($showItemModal)
     <div class="modal fade show d-block" style="background: rgba(0,0,0,0.6); z-index: 1050;" tabindex="-1">
-        <div class="modal-dialog modal-md modal-dialog-centered">
+        <div class="modal-dialog {{ $newItem['type'] === 'part' ? 'modal-lg' : 'modal-md' }} modal-dialog-centered">
             <div class="modal-content shadow-lg border-0">
                 <div class="modal-header bg-info text-white">
                     <h5 class="modal-title font-weight-bold"><i class="fas fa-wrench mr-2"></i> Agregar Ítem a Orden</h5>
                     <button type="button" class="close text-white" wire:click="$set('showItemModal', false)">&times;</button>
                 </div>
                 <div class="modal-body p-4">
-                    <div class="form-group">
-                        <label class="font-weight-bold text-xs">Tipo de Ítem</label>
+                    <div class="form-group mb-3">
+                        <label class="font-weight-bold text-xs text-uppercase text-secondary">Tipo de Ítem</label>
                         <div class="btn-group btn-group-toggle w-100" data-toggle="buttons">
                             <button type="button" class="btn btn-outline-primary btn-sm {{ $newItem['type'] === 'labor' ? 'active' : '' }}" wire:click="$set('newItem.type', 'labor')">
-                                <i class="fas fa-user-cog mr-1"></i> Mano de Obra
+                                <i class="fas fa-user-cog mr-1"></i> Mano de Obra / Servicio
                             </button>
                             <button type="button" class="btn btn-outline-primary btn-sm {{ $newItem['type'] === 'part' ? 'active' : '' }}" wire:click="$set('newItem.type', 'part')">
                                 <i class="fas fa-cogs mr-1"></i> Repuesto de Inventario
@@ -601,14 +600,162 @@
                     </div>
 
                     @if($newItem['type'] === 'part')
-                        <div class="form-group">
-                            <label class="font-weight-bold text-xs">Seleccionar Repuesto del Inventario</label>
-                            <select wire:change="onProductSelected($event.target.value)" class="form-control">
-                                <option value="">Seleccione producto...</option>
-                                @foreach($products as $p)
-                                    <option value="{{ $p->id }}">{{ $p->name }} (Stock: {{ $p->stock_qty }}) - ${{ number_format($p->price, 2) }}</option>
-                                @endforeach
-                            </select>
+                        {{-- SELECCIÓN INTELIGENTE DE REPUESTO --}}
+                        <div class="form-group mb-3">
+                            <div class="d-flex justify-content-between align-items-center mb-1">
+                                <label class="font-weight-bold text-xs text-uppercase text-secondary mb-0">
+                                    <i class="fas fa-search mr-1 text-primary"></i> Buscar Repuesto en Inventario
+                                </label>
+                                <div class="btn-group btn-group-sm" role="group">
+                                    <button type="button" 
+                                            class="btn btn-xs {{ $productViewMode === 'list' ? 'btn-primary' : 'btn-outline-secondary' }}" 
+                                            wire:click="$set('productViewMode', 'list')" 
+                                            title="Vista Lista">
+                                        <i class="fas fa-list"></i>
+                                    </button>
+                                    <button type="button" 
+                                            class="btn btn-xs {{ $productViewMode === 'grid' ? 'btn-primary' : 'btn-outline-secondary' }}" 
+                                            wire:click="$set('productViewMode', 'grid')" 
+                                            title="Vista Cuadrícula">
+                                        <i class="fas fa-th-large"></i>
+                                    </button>
+                                </div>
+                            </div>
+
+                            @if($selectedProductModel)
+                                {{-- TARJETA DE REPUESTO SELECCIONADO --}}
+                                <div class="p-2 border rounded bg-light d-flex justify-content-between align-items-center shadow-sm">
+                                    <div class="d-flex align-items-center">
+                                        <img src="{{ !empty($selectedProductModel->photo) ? asset($selectedProductModel->photo) : asset('noimage.jpg') }}" 
+                                             alt="{{ $selectedProductModel->name }}" 
+                                             class="rounded mr-2 border" 
+                                             onerror="this.src='{{ asset('noimage.jpg') }}'; this.onerror=null;" 
+                                             style="width: 48px; height: 48px; object-fit: cover;">
+                                        <div>
+                                            <div class="font-weight-bold text-dark text-sm">{{ $selectedProductModel->name }}</div>
+                                            <div class="text-xs text-muted">
+                                                <span class="badge badge-secondary mr-1">SKU: {{ $selectedProductModel->sku }}</span>
+                                                <span class="badge {{ $selectedProductModel->stock_qty > 0 ? 'badge-success' : 'badge-danger' }}">
+                                                    Stock: {{ $selectedProductModel->stock_qty }}
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="text-right d-flex align-items-center">
+                                        <div class="mr-2">
+                                            <small class="text-muted d-block text-xs">Precio Asignado</small>
+                                            <span class="font-weight-bold text-success text-sm">${{ number_format($newItem['unit_price'], 2) }}</span>
+                                        </div>
+                                        <button type="button" class="btn btn-outline-danger btn-xs" wire:click="clearSelectedProduct" title="Cambiar Repuesto">
+                                            <i class="fas fa-times"></i> Cambiar
+                                        </button>
+                                    </div>
+                                </div>
+                            @else
+                                {{-- CAMPO DE BÚSQUEDA INTELIGENTE --}}
+                                <div class="position-relative">
+                                    <div class="input-group">
+                                        <div class="input-group-prepend">
+                                            <span class="input-group-text bg-white"><i class="fas fa-search text-muted"></i></span>
+                                        </div>
+                                        <input type="text" 
+                                               wire:model.live.debounce.250ms="productSearch" 
+                                               class="form-control" 
+                                               placeholder="Escribe código SKU, nombre o palabras clave en cualquier orden..."
+                                               autocomplete="off">
+                                        @if(!empty($productSearch))
+                                            <div class="input-group-append">
+                                                <button class="btn btn-outline-secondary" type="button" wire:click="$set('productSearch', '')">
+                                                    <i class="fas fa-times"></i>
+                                                </button>
+                                            </div>
+                                        @endif
+                                    </div>
+
+                                    {{-- RESULTADOS DE BÚSQUEDA --}}
+                                    @if(strlen(trim($productSearch)) > 0)
+                                        @if($productViewMode === 'list')
+                                            {{-- MODO LISTA (CON MINIATURAS) --}}
+                                            <div class="list-group position-absolute w-100 shadow-lg border mt-1" style="z-index: 1060; max-height: 260px; overflow-y: auto;">
+                                                @forelse($products as $p)
+                                                    @php
+                                                        $stockClass = $p->stock_qty <= 0 ? 'badge-danger' : ($p->stock_qty <= ($p->low_stock ?: 5) ? 'badge-warning' : 'badge-success');
+                                                    @endphp
+                                                    <button type="button" 
+                                                            class="list-group-item list-group-item-action p-2 text-left d-flex justify-content-between align-items-center"
+                                                            wire:click="onProductSelected({{ $p->id }})">
+                                                        <div class="d-flex align-items-center">
+                                                            <img src="{{ !empty($p->photo) ? asset($p->photo) : asset('noimage.jpg') }}" 
+                                                                 alt="{{ $p->name }}" 
+                                                                 class="rounded mr-2 border" 
+                                                                 onerror="this.src='{{ asset('noimage.jpg') }}'; this.onerror=null;" 
+                                                                 style="width: 38px; height: 38px; object-fit: cover;">
+                                                            <div>
+                                                                <span class="font-weight-bold text-dark text-xs d-block">{{ $p->name }}</span>
+                                                                <small class="text-muted text-xs">
+                                                                    <span class="badge badge-light border mr-1">SKU: {{ $p->sku }}</span>
+                                                                    <span class="badge {{ $stockClass }}">Stock: {{ $p->stock_qty }}</span>
+                                                                </small>
+                                                            </div>
+                                                        </div>
+                                                        <div class="text-right">
+                                                            <span class="font-weight-bold text-success text-xs d-block">${{ number_format($p->price, 2) }}</span>
+                                                            <span class="badge badge-primary text-xs"><i class="fas fa-plus"></i> Seleccionar</span>
+                                                        </div>
+                                                    </button>
+                                                @empty
+                                                    <div class="list-group-item p-3 text-muted text-xs text-center">
+                                                        <i class="fas fa-box-open mr-1"></i> No se encontraron repuestos con "{{ $productSearch }}"
+                                                    </div>
+                                                @endforelse
+                                            </div>
+                                        @else
+                                            {{-- MODO CUADRÍCULA (GRID CON TARJETAS E IMÁGENES) --}}
+                                            <div class="position-absolute w-100 shadow-lg border bg-white p-2 mt-1 rounded" style="z-index: 1060; max-height: 320px; overflow-y: auto;">
+                                                <div class="row no-gutters">
+                                                    @forelse($products as $p)
+                                                        @php
+                                                            $stockClass = $p->stock_qty <= 0 ? 'badge-danger' : ($p->stock_qty <= ($p->low_stock ?: 5) ? 'badge-warning' : 'badge-success');
+                                                        @endphp
+                                                        <div class="col-6 col-md-4 p-1">
+                                                            <div class="card h-100 mb-0 border shadow-sm p-1 text-center" 
+                                                                 wire:click="onProductSelected({{ $p->id }})" 
+                                                                 style="cursor: pointer; transition: transform 0.15s ease;"
+                                                                 onmouseover="this.style.borderColor='#17a2b8'; this.style.transform='scale(1.02)';"
+                                                                 onmouseout="this.style.borderColor='#dee2e6'; this.style.transform='scale(1)';">
+                                                                <div class="position-relative">
+                                                                    <img src="{{ !empty($p->photo) ? asset($p->photo) : asset('noimage.jpg') }}" 
+                                                                         alt="{{ $p->name }}" 
+                                                                         class="img-fluid rounded mb-1" 
+                                                                         onerror="this.src='{{ asset('noimage.jpg') }}'; this.onerror=null;" 
+                                                                         style="height: 80px; width: 100%; object-fit: cover;">
+                                                                    <span class="badge {{ $stockClass }} position-absolute" style="top: 4px; right: 4px; font-size: 10px;">
+                                                                        Stock: {{ $p->stock_qty }}
+                                                                    </span>
+                                                                </div>
+                                                                <div class="font-weight-bold text-dark text-xs text-truncate" title="{{ $p->name }}">
+                                                                    {{ $p->name }}
+                                                                </div>
+                                                                <div class="text-muted text-xs small">{{ $p->sku }}</div>
+                                                                <div class="font-weight-bold text-success text-xs mt-1">
+                                                                    ${{ number_format($p->price, 2) }}
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    @empty
+                                                        <div class="col-12 p-3 text-muted text-xs text-center">
+                                                            <i class="fas fa-box-open mr-1"></i> No se encontraron repuestos con "{{ $productSearch }}"
+                                                        </div>
+                                                    @endforelse
+                                                </div>
+                                            </div>
+                                        @endif
+                                    @endif
+                                </div>
+                                <small class="text-muted text-xs mt-1 d-block">
+                                    <i class="fas fa-info-circle mr-1"></i> Si el cliente tiene recargo, flete o margen diferencial configurado, el precio se calcula automáticamente.
+                                </small>
+                            @endif
                         </div>
                     @endif
 
