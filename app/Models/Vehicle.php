@@ -68,7 +68,7 @@ class Vehicle extends Model
     }
 
     /**
-     * Scope to search vehicles by plate, brand, model, VIN, or owner name/taxpayer ID.
+     * Scope to search vehicles by plate, brand, model, VIN, or owner name/taxpayer ID with multi-tokens in any order.
      */
     public function scopeSearch($query, $term)
     {
@@ -77,16 +77,23 @@ class Vehicle extends Model
         }
 
         $term = trim((string)$term);
+        $tokens = array_filter(explode(' ', $term));
 
-        return $query->where(function ($q) use ($term) {
-            $q->where('plate', 'like', "%{$term}%")
-              ->orWhere('brand', 'like', "%{$term}%")
-              ->orWhere('model', 'like', "%{$term}%")
-              ->orWhere('vin', 'like', "%{$term}%")
-              ->orWhereHas('customer', function ($cq) use ($term) {
-                  $cq->where('name', 'like', "%{$term}%")
-                     ->orWhere('taxpayer_id', 'like', "%{$term}%");
-              });
+        return $query->where(function ($q) use ($tokens) {
+            foreach ($tokens as $token) {
+                $q->where(function ($subQuery) use ($token) {
+                    $subQuery->where('plate', 'like', "%{$token}%")
+                             ->orWhere('brand', 'like', "%{$token}%")
+                             ->orWhere('model', 'like', "%{$token}%")
+                             ->orWhere('color', 'like', "%{$token}%")
+                             ->orWhere('year', 'like', "%{$token}%")
+                             ->orWhere('vin', 'like', "%{$token}%")
+                             ->orWhereHas('customer', function ($cq) use ($token) {
+                                 $cq->where('name', 'like', "%{$token}%")
+                                    ->orWhere('taxpayer_id', 'like', "%{$token}%");
+                             });
+                });
+            }
         });
     }
 }

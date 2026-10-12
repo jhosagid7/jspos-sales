@@ -257,6 +257,7 @@
                 </div>
                 <div class="modal-body p-4">
                     <div class="row">
+                        {{-- CLIENTE CON BUSCADOR INTELIGENTE --}}
                         <div class="col-md-6 form-group">
                             <div class="d-flex justify-content-between align-items-center mb-1">
                                 <label class="font-weight-bold text-xs mb-0">Cliente / Propietario <span class="text-danger">*</span></label>
@@ -264,14 +265,61 @@
                                     <i class="fas fa-user-plus mr-1"></i> + Nuevo Cliente
                                 </button>
                             </div>
-                            <select wire:model.live="newOrder.customer_id" class="form-control">
-                                <option value="">Seleccione Cliente...</option>
-                                @foreach($customers as $c)
-                                    <option value="{{ $c->id }}">{{ $c->name }} ({{ $c->taxpayer_id }})</option>
-                                @endforeach
-                            </select>
-                            @error('newOrder.customer_id') <span class="text-danger text-xs">{{ $message }}</span> @enderror
+
+                            @if($selectedCustomerModel)
+                                <div class="p-2 border rounded bg-light d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <div class="font-weight-bold text-dark text-sm">
+                                            <i class="fas fa-user-check text-success mr-1"></i> {{ $selectedCustomerModel->name }}
+                                        </div>
+                                        <small class="text-muted d-block">
+                                            RIF/CI: <strong>{{ $selectedCustomerModel->taxpayer_id ?: 'S/D' }}</strong> 
+                                            @if($selectedCustomerModel->phone) | Tel: {{ $selectedCustomerModel->phone }} @endif
+                                        </small>
+                                    </div>
+                                    <button type="button" class="btn btn-outline-danger btn-xs" wire:click="clearCustomer" title="Cambiar Cliente">
+                                        <i class="fas fa-times"></i>
+                                    </button>
+                                </div>
+                            @else
+                                <div class="position-relative">
+                                    <div class="input-group">
+                                        <div class="input-group-prepend">
+                                            <span class="input-group-text"><i class="fas fa-search text-muted"></i></span>
+                                        </div>
+                                        <input type="text" 
+                                               wire:model.live.debounce.250ms="customerSearch" 
+                                               class="form-control" 
+                                               placeholder="Escribe nombre, cédula o RIF..."
+                                               autocomplete="off">
+                                    </div>
+
+                                    {{-- Resultados de búsqueda predictiva --}}
+                                    <div class="list-group position-absolute w-100 shadow-lg border" style="z-index: 1060; max-height: 220px; overflow-y: auto;">
+                                        @forelse($customers as $c)
+                                            <button type="button" 
+                                                    class="list-group-item list-group-item-action p-2 text-left text-xs d-flex justify-content-between align-items-center"
+                                                    wire:click="selectCustomer({{ $c->id }})">
+                                                <div>
+                                                    <span class="font-weight-bold text-dark">{{ $c->name }}</span>
+                                                    @if($c->taxpayer_id)
+                                                        <span class="text-muted ml-1">({{ $c->taxpayer_id }})</span>
+                                                    @endif
+                                                </div>
+                                                <span class="badge badge-primary"><i class="fas fa-check"></i></span>
+                                            </button>
+                                        @empty
+                                            <div class="list-group-item p-2 text-muted text-xs text-center">
+                                                No se encontraron clientes con "{{ $customerSearch }}"
+                                            </div>
+                                        @endforelse
+                                    </div>
+                                </div>
+                            @endif
+                            @error('newOrder.customer_id') <span class="text-danger text-xs d-block mt-1">{{ $message }}</span> @enderror
                         </div>
+
+                        {{-- VEHÍCULO CON BUSCADOR INTELIGENTE --}}
                         <div class="col-md-6 form-group">
                             <div class="d-flex justify-content-between align-items-center mb-1">
                                 <label class="font-weight-bold text-xs mb-0">Vehículo <span class="text-danger">*</span></label>
@@ -281,13 +329,66 @@
                                     </button>
                                 @endif
                             </div>
-                            <select wire:model.live="newOrder.vehicle_id" class="form-control" {{ empty($newOrder['customer_id']) ? 'disabled' : '' }}>
-                                <option value="">{{ empty($newOrder['customer_id']) ? 'Primero seleccione un cliente...' : 'Seleccione Vehículo...' }}</option>
-                                @foreach($vehicles as $v)
-                                    <option value="{{ $v->id }}">{{ $v->plate }} - {{ $v->brand }} {{ $v->model }} ({{ $v->year }})</option>
-                                @endforeach
-                            </select>
-                            @error('newOrder.vehicle_id') <span class="text-danger text-xs">{{ $message }}</span> @enderror
+
+                            @if(empty($newOrder['customer_id']))
+                                <div class="p-2 border rounded bg-light text-muted text-xs">
+                                    <i class="fas fa-arrow-left mr-1 text-warning"></i> Primero busca y selecciona un cliente...
+                                </div>
+                            @elseif($selectedVehicleModel)
+                                <div class="p-2 border rounded bg-light d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <div class="font-weight-bold text-dark text-sm">
+                                            <span class="badge badge-dark mr-1">{{ $selectedVehicleModel->plate }}</span>
+                                            {{ $selectedVehicleModel->brand }} {{ $selectedVehicleModel->model }} ({{ $selectedVehicleModel->year }})
+                                        </div>
+                                        <small class="text-muted d-block">
+                                            Color: {{ $selectedVehicleModel->color ?: 'S/D' }} 
+                                            @if($selectedVehicleModel->current_mileage) | Odómetro: {{ number_format($selectedVehicleModel->current_mileage) }} km @endif
+                                        </small>
+                                    </div>
+                                    <button type="button" class="btn btn-outline-danger btn-xs" wire:click="clearVehicle" title="Cambiar Vehículo">
+                                        <i class="fas fa-times"></i>
+                                    </button>
+                                </div>
+                            @else
+                                <div class="position-relative">
+                                    <div class="input-group">
+                                        <div class="input-group-prepend">
+                                            <span class="input-group-text"><i class="fas fa-car text-muted"></i></span>
+                                        </div>
+                                        <input type="text" 
+                                               wire:model.live.debounce.250ms="vehicleSearch" 
+                                               class="form-control" 
+                                               placeholder="Escribe placa, marca, modelo o color..."
+                                               autocomplete="off">
+                                    </div>
+
+                                    {{-- Resultados de vehículos del cliente --}}
+                                    <div class="list-group position-absolute w-100 shadow-lg border" style="z-index: 1060; max-height: 220px; overflow-y: auto;">
+                                        @forelse($vehicles as $v)
+                                            <button type="button" 
+                                                    class="list-group-item list-group-item-action p-2 text-left text-xs d-flex justify-content-between align-items-center"
+                                                    wire:click="selectVehicle({{ $v->id }})">
+                                                <div>
+                                                    <span class="badge badge-dark mr-1">{{ $v->plate }}</span>
+                                                    <span class="font-weight-bold text-dark">{{ $v->brand }} {{ $v->model }}</span>
+                                                    <span class="text-muted ml-1">({{ $v->year }} - {{ $v->color }})</span>
+                                                </div>
+                                                <span class="badge badge-success"><i class="fas fa-check"></i></span>
+                                            </button>
+                                        @empty
+                                            <div class="list-group-item p-2 text-muted text-xs text-center">
+                                                @if(count($selectedCustomerModel ? $selectedCustomerModel->vehicles : []) === 0)
+                                                    Este cliente no tiene vehículos. ¡Usa <strong>+ Nuevo Vehículo</strong>!
+                                                @else
+                                                    No hay vehículos coincidentes con "{{ $vehicleSearch }}"
+                                                @endif
+                                            </div>
+                                        @endforelse
+                                    </div>
+                                </div>
+                            @endif
+                            @error('newOrder.vehicle_id') <span class="text-danger text-xs d-block mt-1">{{ $message }}</span> @enderror
                         </div>
                     </div>
                     <div class="row">

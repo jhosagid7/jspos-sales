@@ -68,6 +68,10 @@ class WorkOrders extends Component
     public bool $showQuickCustomerModal = false;
     public bool $showQuickVehicleModal = false;
 
+    // Smart Filter Properties for reception modal
+    public string $customerSearch = '';
+    public string $vehicleSearch = '';
+
     protected function rules(): array
     {
         return [
@@ -93,6 +97,40 @@ class WorkOrders extends Component
     public function updatedNewOrderCustomerId($customerId): void
     {
         $this->newOrder['vehicle_id'] = null;
+        $this->vehicleSearch = '';
+    }
+
+    public function selectCustomer(int $customerId): void
+    {
+        $this->newOrder['customer_id'] = $customerId;
+        $this->newOrder['vehicle_id'] = null;
+        $this->customerSearch = '';
+        $this->vehicleSearch = '';
+    }
+
+    public function clearCustomer(): void
+    {
+        $this->newOrder['customer_id'] = null;
+        $this->newOrder['vehicle_id'] = null;
+        $this->customerSearch = '';
+        $this->vehicleSearch = '';
+    }
+
+    public function selectVehicle(int $vehicleId): void
+    {
+        $this->newOrder['vehicle_id'] = $vehicleId;
+        $this->vehicleSearch = '';
+
+        $vehicle = Vehicle::find($vehicleId);
+        if ($vehicle && !empty($vehicle->current_mileage) && empty($this->newOrder['entry_mileage'])) {
+            $this->newOrder['entry_mileage'] = $vehicle->current_mileage;
+        }
+    }
+
+    public function clearVehicle(): void
+    {
+        $this->newOrder['vehicle_id'] = null;
+        $this->vehicleSearch = '';
     }
 
     public function selectOrder(int $orderId): void
@@ -309,11 +347,30 @@ class WorkOrders extends Component
             ? WorkOrder::with(['customer', 'vehicle', 'mechanic', 'items.mechanic', 'items.product'])->find($this->selectedOrderId)
             : null;
 
-        $customers = Customer::orderBy('name')->take(50)->get();
+        $customersQuery = Customer::query();
+        if (!empty($this->customerSearch)) {
+            $customersQuery->search($this->customerSearch);
+        }
+        $customers = $customersQuery->orderBy('name')->take(20)->get();
 
-        $vehicles = !empty($this->newOrder['customer_id'])
-            ? Vehicle::where('customer_id', $this->newOrder['customer_id'])->get()
-            : collect();
+        // Ensure selected customer is present in list if already selected
+        $selectedCustomerModel = !empty($this->newOrder['customer_id'])
+            ? Customer::find($this->newOrder['customer_id'])
+            : null;
+
+        $vehiclesQuery = !empty($this->newOrder['customer_id'])
+            ? Vehicle::where('customer_id', $this->newOrder['customer_id'])
+            : Vehicle::query();
+
+        if (!empty($this->vehicleSearch)) {
+            $vehiclesQuery->search($this->vehicleSearch);
+        }
+
+        $vehicles = $vehiclesQuery->orderBy('plate')->take(20)->get();
+
+        $selectedVehicleModel = !empty($this->newOrder['vehicle_id'])
+            ? Vehicle::find($this->newOrder['vehicle_id'])
+            : null;
 
         $mechanics = User::all();
 
@@ -323,7 +380,9 @@ class WorkOrders extends Component
             'orders' => $orders,
             'selectedOrder' => $selectedOrder,
             'customers' => $customers,
+            'selectedCustomerModel' => $selectedCustomerModel,
             'vehicles' => $vehicles,
+            'selectedVehicleModel' => $selectedVehicleModel,
             'mechanics' => $mechanics,
             'products' => $products,
         ]);

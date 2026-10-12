@@ -273,4 +273,46 @@ class WorkshopLivewireTest extends TestCase
             'id' => $vehicle->id,
         ]);
     }
+
+    public function test_can_search_customers_and_vehicles_with_smart_tokens(): void
+    {
+        $user = User::factory()->create();
+
+        $c1 = Customer::create([
+            'name' => 'JUAN BAUTISTA PARRA RAMIREZ',
+            'taxpayer_id' => 'V-11888999',
+            'phone' => '0414-5556677',
+            'address' => 'El Vigia',
+        ]);
+
+        $v1 = Vehicle::create([
+            'customer_id' => $c1->id,
+            'plate' => 'ABC-778',
+            'brand' => 'TOYOTA',
+            'model' => 'FORTUNER 4X4',
+            'year' => 2022,
+            'color' => 'GRIS PLATA',
+            'current_mileage' => 45000,
+        ]);
+
+        // Multi-token customer search in any order ("parra juan vigia")
+        Livewire::actingAs($user)
+            ->test(WorkOrders::class)
+            ->set('showCreateModal', true)
+            ->set('customerSearch', 'parra juan')
+            ->assertSee('JUAN BAUTISTA PARRA RAMIREZ')
+            ->call('selectCustomer', $c1->id)
+            ->assertSet('newOrder.customer_id', $c1->id)
+            // Multi-token vehicle search in any order ("fortuner toyota 778")
+            ->set('vehicleSearch', 'toyota 778')
+            ->assertSee('ABC-778')
+            ->assertSee('FORTUNER 4X4')
+            ->call('selectVehicle', $v1->id)
+            ->assertSet('newOrder.vehicle_id', $v1->id)
+            ->assertSet('newOrder.entry_mileage', 45000)
+            ->call('clearVehicle')
+            ->assertSet('newOrder.vehicle_id', null)
+            ->call('clearCustomer')
+            ->assertSet('newOrder.customer_id', null);
+    }
 }

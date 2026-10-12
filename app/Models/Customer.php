@@ -101,6 +101,30 @@ class Customer extends Authenticatable
         return $this->hasMany(Vehicle::class);
     }
 
+    /**
+     * Scope to search customers with multi-word tokens in any order.
+     */
+    public function scopeSearch($query, $term)
+    {
+        if (blank($term)) {
+            return $query;
+        }
+
+        $term = trim((string)$term);
+        $tokens = array_filter(explode(' ', $term));
+
+        return $query->where(function ($q) use ($tokens) {
+            foreach ($tokens as $token) {
+                $q->where(function ($subQuery) use ($token) {
+                    $subQuery->where('name', 'like', "%{$token}%")
+                             ->orWhere('taxpayer_id', 'like', "%{$token}%")
+                             ->orWhere('phone', 'like', "%{$token}%")
+                             ->orWhere('address', 'like', "%{$token}%");
+                });
+            }
+        });
+    }
+
     protected static function booted()
     {
         static::saving(function ($customer) {
