@@ -315,4 +315,38 @@ class WorkshopLivewireTest extends TestCase
             ->call('clearCustomer')
             ->assertSet('newOrder.customer_id', null);
     }
+
+    public function test_mechanic_selector_only_shows_users_with_mecanico_role_and_supports_smart_search(): void
+    {
+        $roleMecanico = \Spatie\Permission\Models\Role::firstOrCreate(['name' => 'Mecanico']);
+
+        $adminUser = User::factory()->create(['name' => 'ADMINISTRADOR GENERAL']);
+        $sellerUser = User::factory()->create(['name' => 'VENDEDOR MOSTRADOR']);
+
+        $m1 = User::factory()->create(['name' => 'PEDRO PABLO PEREZ']);
+        $m1->assignRole($roleMecanico);
+
+        $m2 = User::factory()->create(['name' => 'JOSE ALBERTO MECANICO']);
+        $m2->assignRole($roleMecanico);
+
+        Livewire::actingAs($adminUser)
+            ->test(WorkOrders::class)
+            ->set('showCreateModal', true)
+            // Neither admin nor seller should be in mechanics list
+            ->assertViewHas('mechanics', function ($mechanics) use ($adminUser, $sellerUser, $m1, $m2) {
+                $ids = $mechanics->pluck('id')->toArray();
+                return !in_array($adminUser->id, $ids)
+                    && !in_array($sellerUser->id, $ids)
+                    && in_array($m1->id, $ids)
+                    && in_array($m2->id, $ids);
+            })
+            // Test smart multi-word search for mechanics
+            ->set('mechanicSearch', 'perez pedro')
+            ->assertSee('PEDRO PABLO PEREZ')
+            ->assertDontSee('JOSE ALBERTO MECANICO')
+            ->call('selectMechanic', $m1->id)
+            ->assertSet('newOrder.mechanic_id', $m1->id)
+            ->call('clearMechanic')
+            ->assertSet('newOrder.mechanic_id', null);
+    }
 }

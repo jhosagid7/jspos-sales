@@ -26,6 +26,7 @@ class RoleSeeder extends Seeder
         $driverRole = Role::firstOrCreate(['name' => 'Driver'], ['level' => 10]);
         $choferRole = Role::firstOrCreate(['name' => 'Chofer'], ['level' => 10]);
         $sopladosRole = Role::firstOrCreate(['name' => 'Operario Soplados'], ['level' => 10]);
+        $mecanicoRole = Role::firstOrCreate(['name' => 'Mecanico'], ['level' => 10]);
 
         // Update levels
         $superAdminRole->update(['level' => 1000]);
@@ -40,6 +41,7 @@ class RoleSeeder extends Seeder
         $driverRole->update(['level' => 10]);
         $choferRole->update(['level' => 10]);
         $sopladosRole->update(['level' => 10]);
+        $mecanicoRole->update(['level' => 10]);
 
         // 2. Assign Permissions using RoleTemplateService
         RoleTemplateService::applyTemplateToRole($superAdminRole, 'super_admin');

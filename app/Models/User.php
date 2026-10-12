@@ -249,17 +249,36 @@ class User extends Authenticatable
     }
 
     /**
-     * Scope to get all users acting as Mechanics.
+     * Scope to get all users having strictly the Mecanico role.
      */
     public function scopeMechanics($query)
     {
-        return $query->where(function ($q) {
-            $q->whereHas('roles', function ($rq) {
-                $rq->whereIn('name', ['Mecanico', 'Mecánico', 'mecanico', 'mecanico_taller']);
-            })
-            ->orWhereIn('profile', ['Mecanico', 'Mecánico', 'mecanico'])
-            ->orWhereHas('workOrderItems');
+        return $query->whereHas('roles', function ($rq) {
+            $rq->whereIn('name', ['Mecanico', 'Mecánico', 'mecanico']);
         })->distinct();
+    }
+
+    /**
+     * Scope to search users by multi-word tokens in any order.
+     */
+    public function scopeSearch($query, $term)
+    {
+        if (blank($term)) {
+            return $query;
+        }
+
+        $term = trim((string)$term);
+        $tokens = array_filter(explode(' ', $term));
+
+        return $query->where(function ($q) use ($tokens) {
+            foreach ($tokens as $token) {
+                $q->where(function ($subQuery) use ($token) {
+                    $subQuery->where('name', 'like', "%{$token}%")
+                             ->orWhere('email', 'like', "%{$token}%")
+                             ->orWhere('phone', 'like', "%{$token}%");
+                });
+            }
+        });
     }
 
     public function isSuperAdmin(): bool

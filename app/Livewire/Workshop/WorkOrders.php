@@ -71,6 +71,7 @@ class WorkOrders extends Component
     // Smart Filter Properties for reception modal
     public string $customerSearch = '';
     public string $vehicleSearch = '';
+    public string $mechanicSearch = '';
 
     protected function rules(): array
     {
@@ -131,6 +132,18 @@ class WorkOrders extends Component
     {
         $this->newOrder['vehicle_id'] = null;
         $this->vehicleSearch = '';
+    }
+
+    public function selectMechanic(int $mechanicId): void
+    {
+        $this->newOrder['mechanic_id'] = $mechanicId;
+        $this->mechanicSearch = '';
+    }
+
+    public function clearMechanic(): void
+    {
+        $this->newOrder['mechanic_id'] = null;
+        $this->mechanicSearch = '';
     }
 
     public function selectOrder(int $orderId): void
@@ -372,7 +385,16 @@ class WorkOrders extends Component
             ? Vehicle::find($this->newOrder['vehicle_id'])
             : null;
 
-        $mechanics = User::all();
+        // Mechanics filtered strictly by role 'Mecanico'
+        $mechanicsQuery = User::mechanics();
+        if (!empty($this->mechanicSearch)) {
+            $mechanicsQuery->search($this->mechanicSearch);
+        }
+        $mechanics = $mechanicsQuery->orderBy('name')->take(20)->get();
+
+        $selectedMechanicModel = !empty($this->newOrder['mechanic_id'])
+            ? User::find($this->newOrder['mechanic_id'])
+            : null;
 
         $products = Product::where('status', 'available')->orderBy('name')->take(100)->get();
 
@@ -384,6 +406,7 @@ class WorkOrders extends Component
             'vehicles' => $vehicles,
             'selectedVehicleModel' => $selectedVehicleModel,
             'mechanics' => $mechanics,
+            'selectedMechanicModel' => $selectedMechanicModel,
             'products' => $products,
         ]);
     }

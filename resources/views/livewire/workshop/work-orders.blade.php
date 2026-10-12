@@ -407,14 +407,56 @@
                                 <option value="Lleno">Tanque Lleno</option>
                             </select>
                         </div>
+                        {{-- MECÁNICO CON BUSCADOR INTELIGENTE Y FILTRADO POR ROL --}}
                         <div class="col-md-4 form-group">
                             <label class="font-weight-bold text-xs">Mecánico Líder Asignado</label>
-                            <select wire:model.live="newOrder.mechanic_id" class="form-control">
-                                <option value="">Sin asignar aún</option>
-                                @foreach($mechanics as $m)
-                                    <option value="{{ $m->id }}">{{ $m->name }}</option>
-                                @endforeach
-                            </select>
+                            @if($selectedMechanicModel)
+                                <div class="p-1 border rounded bg-light d-flex justify-content-between align-items-center">
+                                    <div class="text-truncate">
+                                        <i class="fas fa-wrench text-warning mr-1"></i>
+                                        <span class="font-weight-bold text-dark text-xs">{{ $selectedMechanicModel->name }}</span>
+                                    </div>
+                                    <button type="button" class="btn btn-outline-danger btn-xs ml-1" wire:click="clearMechanic" title="Remover Mecánico">
+                                        <i class="fas fa-times"></i>
+                                    </button>
+                                </div>
+                            @else
+                                <div class="position-relative">
+                                    <div class="input-group">
+                                        <div class="input-group-prepend">
+                                            <span class="input-group-text"><i class="fas fa-user-cog text-muted"></i></span>
+                                        </div>
+                                        <input type="text" 
+                                               wire:model.live.debounce.250ms="mechanicSearch" 
+                                               class="form-control" 
+                                               placeholder="Buscar mecánico..."
+                                               autocomplete="off">
+                                    </div>
+
+                                    @if(strlen(trim($mechanicSearch)) > 0)
+                                        <div class="list-group position-absolute w-100 shadow-lg border" style="z-index: 1060; max-height: 180px; overflow-y: auto;">
+                                            @forelse($mechanics as $m)
+                                                <button type="button" 
+                                                        class="list-group-item list-group-item-action p-2 text-left text-xs d-flex justify-content-between align-items-center"
+                                                        wire:click="selectMechanic({{ $m->id }})">
+                                                    <div>
+                                                        <span class="font-weight-bold text-dark">{{ $m->name }}</span>
+                                                        <span class="badge badge-warning ml-1 text-xs">Mecánico</span>
+                                                    </div>
+                                                    <span class="badge badge-primary"><i class="fas fa-check"></i></span>
+                                                </button>
+                                            @empty
+                                                <div class="list-group-item p-2 text-muted text-xs text-center">
+                                                    No hay mecánicos registrados con ese nombre.
+                                                </div>
+                                            @endforelse
+                                        </div>
+                                    @endif
+                                </div>
+                                <small class="text-muted text-xs mt-0.5 d-block">
+                                    <i class="fas fa-info-circle mr-0.5"></i> Solo usuarios con el rol <strong>Mecánico</strong>.
+                                </small>
+                            @endif
                         </div>
                     </div>
                     <div class="form-group">
@@ -594,7 +636,7 @@
                             <div class="col-7 form-group mb-0">
                                 <label class="font-weight-bold text-xs">Mecánico Ejecutante</label>
                                 <select wire:model.live="newItem.mechanic_id" class="form-control form-control-sm">
-                                    <option value="">Seleccione especialista...</option>
+                                    <option value="">{{ count($mechanics) > 0 ? 'Seleccione especialista...' : 'No hay usuarios con rol Mecánico' }}</option>
                                     @foreach($mechanics as $m)
                                         <option value="{{ $m->id }}">{{ $m->name }}</option>
                                     @endforeach
