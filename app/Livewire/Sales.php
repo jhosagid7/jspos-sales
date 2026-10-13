@@ -77,6 +77,8 @@ class Sales extends Component
     public $order_selected_id, $customer_name, $amount;
     public $order_notes = null;
     public $order_id, $ordersObt, $order_note, $details = [];
+    public $work_order_id = null;
+    public $work_order_vehicle = null;
     public $pagination = 5, $status;
     public $confirmation_code = null;
     public $salesViewMode = 'grid'; // 'grid' or 'list'
@@ -1184,6 +1186,13 @@ class Sales extends Component
             $this->loadSaleToEdit(session('editing_sale_id'));
             session()->forget(['editing_sale_id', 'edit_authorized_by', 'edit_reason']);
         }
+
+        // Verificar si se está facturando una orden de trabajo de taller
+        $incomingWorkOrderId = request()->query('work_order_id') ?: session('billing_work_order_id');
+        if ($incomingWorkOrderId) {
+            session()->forget('billing_work_order_id');
+            $this->loadWorkOrderToCart((int)$incomingWorkOrderId);
+        }
     }
     
     public function hydrate()
@@ -1778,6 +1787,99 @@ class Sales extends Component
         $this->recalculateCartWithSellerConfig();
 
         $this->dispatch('close-process-order');
+    }
+
+    public function loadWorkOrderToCart(int $workOrderId)
+    {
+        $this->resetExcept(
+            'config', 'banks', 'bank', 'warehouses', 'warehouse_id', 'trends', 
+            'invoiceCurrency_id', 'invoiceExchangeRate', 'displayCurrency',
+            'decimalPlaces', 'canManageAdjustments', 'canShowExchangeRate', 
+            'canSwitchWarehouse', 'moduleMultiWarehouse', 'moduleCredits', 
+            'moduleAdvancedPayments', 'drivers', 'sellers', 'currencies',
+            'isSharedTerminal', 'availableOperators', 'isMulticurrency'
+        );
+        $this->clear();
+        session()->forget('sale_customer');
+
+        $workOrder = \App\Models\WorkOrder::with(['customer', 'vehicle', 'items.product'])->find($workOrderId);
+        if (!$workOrder) {
+            $this->dispatch('noty', msg: 'ORDEN DE TRABAJO NO ENCONTRADA', type: 'error');
+            return;
+        }
+
+        if ($workOrder->status === 'invoiced' || $workOrder->sale_id) {
+            $this->dispatch('noty', msg: "LA ORDEN #{$workOrder->order_number} YA FUE FACTURADA", type: 'warning');
+            return;
+        }
+
+        // 1. Cargar el cliente y sus condiciones comerciales
+        $customer = $workOrder->customer;
+        $this->setCustomer($customer);
+
+        // 2. Vincular IDs de taller
+        $this->work_order_id = $workOrder->id;
+        $this->work_order_vehicle = $workOrder->vehicle;
+
+        $vehicleInfo = $workOrder->vehicle ? "[{$workOrder->vehicle->plate}] {$workOrder->vehicle->brand} {$workOrder->vehicle->model}" : "S/D";
+        $mileageInfo = $workOrder->entry_mileage ? number_format($workOrder->entry_mileage) . " km" : "S/D";
+        $this->order_notes = "Orden de Trabajo #{$workOrder->order_number} | Vehículo: {$vehicleInfo} | Odómetro: {$mileageInfo}";
+
+        if (empty($this->warehouse_id)) {
+            $defaultWh = \App\Models\Warehouse::where('is_active', 1)->first();
+            $this->warehouse_id = $defaultWh ? $defaultWh->id : 1;
+        }
+
+        // 3. Crear o reutilizar producto comodín para servicios/mano de obra
+        $serviceProduct = \App\Models\Product::where('sku', 'SRV-LABOR')->first();
+        if (!$serviceProduct) {
+            $category = \App\Models\Category::firstOrCreate(['name' => 'SERVICIOS TALLER']);
+            $supplier = \App\Models\Supplier::firstOrCreate(['name' => 'TALLER AUTOMOTRIZ INTERNO']);
+            $serviceProduct = \App\Models\Product::create([
+                'sku' => 'SRV-LABOR',
+                'name' => 'SERVICIO MANO DE OBRA TALLER',
+                'type' => 'service',
+                'status' => 'available',
+                'cost' => 0.00,
+                'price' => 0.00,
+                'manage_stock' => 0,
+                'stock_qty' => 0,
+                'low_stock' => 0,
+                'category_id' => $category->id,
+                'supplier_id' => $supplier->id,
+                'show_in_sales' => false,
+            ]);
+        }
+
+        // 4. Cargar ítems aprobados al carrito
+        $this->bypassReservation = true;
+
+        foreach ($workOrder->items()->where('is_approved', true)->get() as $item) {
+            if ($item->type === 'part' && $item->product) {
+                // Producto físico (Repuesto)
+                $this->AddProduct(
+                    $item->product, 
+                    (float)$item->quantity, 
+                    $this->warehouse_id, 
+                    (float)$item->unit_price, 
+                    $item->description
+                );
+            } else {
+                // Servicio / Mano de Obra (No maneja stock)
+                $this->AddProduct(
+                    $serviceProduct, 
+                    (float)$item->quantity, 
+                    $this->warehouse_id, 
+                    (float)$item->unit_price, 
+                    $item->description
+                );
+            }
+        }
+
+        $this->bypassReservation = false;
+
+        // 5. Iniciar directamente el cobro en el modal multimoneda del POS
+        $this->initPayment(1);
     }
 
     public function loadSaleToEdit($saleId)
@@ -4386,6 +4488,8 @@ class Sales extends Component
                 'driver_id' => $this->driver_id,
                 'seller_id' => $this->seller_id ?: ($this->customer['seller_id'] ?? null),
                 'payment_agreement' => $agreementToSave,
+                'work_order_id' => $this->work_order_id ?: null,
+                'vehicle_id' => $this->work_order_vehicle ? $this->work_order_vehicle->id : null,
             ];
 
             if ($this->editing_sale_id && $sale) {
@@ -4831,6 +4935,19 @@ class Sales extends Component
                 }
             }
 
+            // Actualizar Orden de Trabajo de Taller (si la venta proviene de una OT)
+            if ($this->work_order_id) {
+                $targetWorkOrder = \App\Models\WorkOrder::find($this->work_order_id);
+                if ($targetWorkOrder) {
+                    $targetWorkOrder->update([
+                        'sale_id' => $sale->id,
+                        'status' => 'invoiced',
+                        'delivered_at' => now(),
+                    ]);
+                    Log::info("WorkOrder {$this->work_order_id} marked as invoiced with Sale {$sale->id}.");
+                }
+            }
+
             // Vincular la autorización de crédito con esta venta (si aplica)
             if ($this->pendingCreditAuthId) {
                 $auth = \App\Models\CreditAuthorization::find($this->pendingCreditAuthId);
@@ -4911,6 +5028,9 @@ class Sales extends Component
             );
             $this->clear();
             session()->forget('sale_customer');
+            $this->work_order_id = null;
+            $this->work_order_vehicle = null;
+            session()->forget('billing_work_order_id');
             
             // Limpiar sesiones de pagos y vueltos después de venta exitosa
             session()->forget('payments');

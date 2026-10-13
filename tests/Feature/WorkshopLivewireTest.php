@@ -8,13 +8,13 @@ use App\Models\Product;
 use App\Models\User;
 use App\Models\Vehicle;
 use App\Models\WorkOrder;
-use Illuminate\Foundation\Testing\DatabaseTransactions;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 use Livewire\Livewire;
 use Tests\TestCase;
 
 class WorkshopLivewireTest extends TestCase
 {
-    use DatabaseTransactions;
+    use RefreshDatabase;
 
     protected function createCustomer(array $attributes = []): Customer
     {
@@ -428,6 +428,36 @@ class WorkshopLivewireTest extends TestCase
             ->call('clearSelectedProduct')
             ->assertSet('newItem.product_id', null)
             ->assertSet('newItem.unit_price', 0.0);
+    }
+
+    public function test_can_redirect_work_order_to_pos_billing(): void
+    {
+        $user = User::factory()->create();
+        $customer = $this->createCustomer();
+        $vehicle = $this->createVehicle($customer);
+
+        $order = WorkOrder::create([
+            'customer_id' => $customer->id,
+            'vehicle_id' => $vehicle->id,
+            'user_id' => $user->id,
+            'entry_mileage' => 45000,
+            'status' => 'ready',
+            'initial_diagnosis' => 'Mantenimiento General',
+        ]);
+
+        $order->addItem([
+            'type' => 'labor',
+            'description' => 'Servicio de Frenos',
+            'quantity' => 1,
+            'unit_price' => 50.00,
+        ]);
+
+        Livewire::actingAs($user)
+            ->test(WorkOrders::class)
+            ->call('redirectToPosBilling', $order->id)
+            ->assertRedirect(route('sales', ['work_order_id' => $order->id]));
+
+        $this->assertEquals($order->id, session('billing_work_order_id'));
     }
 }
 

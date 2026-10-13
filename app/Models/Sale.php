@@ -18,6 +18,8 @@ class Sale extends Model
         'items',
         'status',
         'customer_id',
+        'work_order_id',
+        'vehicle_id',
         'seller_id',
 
         'user_id',
@@ -141,6 +143,16 @@ class Sale extends Model
     public function debitNotes()
     {
         return $this->hasMany(DebitNote::class);
+    }
+
+    public function workOrder()
+    {
+        return $this->belongsTo(WorkOrder::class, 'work_order_id');
+    }
+
+    public function vehicle()
+    {
+        return $this->belongsTo(Vehicle::class, 'vehicle_id');
     }
 
     //scopes

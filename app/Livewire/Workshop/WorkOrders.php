@@ -334,6 +334,23 @@ class WorkOrders extends Component
         $this->dispatch('order-billed', orderId: $targetId);
     }
 
+    public function redirectToPosBilling(?int $orderId = null)
+    {
+        $targetId = $orderId ?: $this->selectedOrderId;
+        if (!$targetId) {
+            return;
+        }
+
+        $order = WorkOrder::findOrFail($targetId);
+        if ($order->status === 'invoiced' || $order->sale_id) {
+            $this->dispatch('noty', msg: "Esta orden ya se encuentra facturada.", type: 'warning');
+            return;
+        }
+
+        session(['billing_work_order_id' => $order->id]);
+        return redirect()->route('sales', ['work_order_id' => $order->id]);
+    }
+
     public function openItemModal(): void
     {
         $this->productSearch = '';
@@ -409,11 +426,9 @@ class WorkOrders extends Component
             ? WorkOrder::with(['customer.customerConfigs', 'vehicle', 'mechanic', 'items.mechanic', 'items.product'])->find($this->selectedOrderId)
             : null;
 
-        $customersQuery = Customer::query();
-        if (!empty($this->customerSearch)) {
-            $customersQuery->search($this->customerSearch);
-        }
-        $customers = $customersQuery->orderBy('name')->take(20)->get();
+        $customers = !empty(trim($this->customerSearch))
+            ? Customer::search($this->customerSearch)->orderBy('name')->take(20)->get()
+            : collect();
 
         // Ensure selected customer is present in list if already selected
         $selectedCustomerModel = !empty($this->newOrder['customer_id'])

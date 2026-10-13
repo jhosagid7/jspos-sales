@@ -145,8 +145,8 @@
                                 <button wire:click="openItemModal" class="btn btn-outline-primary btn-sm" title="Agregar Mano de Obra o Repuestos">
                                     <i class="fas fa-plus"></i> Ítem
                                 </button>
-                                <button wire:click="$set('showBillingModal', true)" class="btn btn-success btn-sm ml-1" title="Cobrar / Facturar en Caja">
-                                    <i class="fas fa-cash-register"></i> Cobrar
+                                <button wire:click="redirectToPosBilling({{ $selectedOrder->id }})" class="btn btn-success btn-sm ml-1" title="Cobrar / Facturar en Caja POS">
+                                    <i class="fas fa-cash-register mr-1"></i> Cobrar en POS
                                 </button>
                             @else
                                 <span class="badge badge-success p-2">Cobrada</span>
@@ -294,26 +294,28 @@
                                                autocomplete="off">
                                     </div>
 
-                                    {{-- Resultados de búsqueda predictiva --}}
-                                    <div class="list-group position-absolute w-100 shadow-lg border" style="z-index: 1060; max-height: 220px; overflow-y: auto;">
-                                        @forelse($customers as $c)
-                                            <button type="button" 
-                                                    class="list-group-item list-group-item-action p-2 text-left text-xs d-flex justify-content-between align-items-center"
-                                                    wire:click="selectCustomer({{ $c->id }})">
-                                                <div>
-                                                    <span class="font-weight-bold text-dark">{{ $c->name }}</span>
-                                                    @if($c->taxpayer_id)
-                                                        <span class="text-muted ml-1">({{ $c->taxpayer_id }})</span>
-                                                    @endif
+                                    {{-- Resultados de búsqueda predictiva: solo mostrar al escribir --}}
+                                    @if(strlen(trim($customerSearch)) > 0)
+                                        <div class="list-group position-absolute w-100 shadow-lg border" style="z-index: 1060; max-height: 220px; overflow-y: auto;">
+                                            @forelse($customers as $c)
+                                                <button type="button" 
+                                                        class="list-group-item list-group-item-action p-2 text-left text-xs d-flex justify-content-between align-items-center"
+                                                        wire:click="selectCustomer({{ $c->id }})">
+                                                    <div>
+                                                        <span class="font-weight-bold text-dark">{{ $c->name }}</span>
+                                                        @if($c->taxpayer_id)
+                                                            <span class="text-muted ml-1">({{ $c->taxpayer_id }})</span>
+                                                        @endif
+                                                    </div>
+                                                    <span class="badge badge-primary"><i class="fas fa-check"></i></span>
+                                                </button>
+                                            @empty
+                                                <div class="list-group-item p-2 text-muted text-xs text-center">
+                                                    No se encontraron clientes con "{{ $customerSearch }}"
                                                 </div>
-                                                <span class="badge badge-primary"><i class="fas fa-check"></i></span>
-                                            </button>
-                                        @empty
-                                            <div class="list-group-item p-2 text-muted text-xs text-center">
-                                                No se encontraron clientes con "{{ $customerSearch }}"
-                                            </div>
-                                        @endforelse
-                                    </div>
+                                            @endforelse
+                                        </div>
+                                    @endif
                                 </div>
                             @endif
                             @error('newOrder.customer_id') <span class="text-danger text-xs d-block mt-1">{{ $message }}</span> @enderror

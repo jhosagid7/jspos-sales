@@ -246,4 +246,49 @@ class WorkOrderBillingTest extends TestCase
             'payment_method' => 'cash_usd',
         ]);
     }
+
+    public function test_sales_pos_can_load_work_order_to_cart_and_link_vehicle(): void
+    {
+        $user = User::factory()->create();
+        $warehouse = \App\Models\Warehouse::firstOrCreate(
+            ['id' => 1],
+            ['name' => 'Almacen Principal', 'is_active' => 1]
+        );
+        $customer = $this->createCustomer(['allow_credit' => true]);
+        $vehicle = $this->createVehicle($customer);
+        $part = $this->createProduct(['price' => 45.00, 'manage_stock' => 0]);
+
+        $order = WorkOrder::create([
+            'customer_id' => $customer->id,
+            'vehicle_id' => $vehicle->id,
+            'user_id' => $user->id,
+            'entry_mileage' => 125000,
+            'initial_diagnosis' => 'Frenos y suspension',
+        ]);
+
+        $order->addItem([
+            'type' => 'part',
+            'product_id' => $part->id,
+            'description' => 'Pastillas de Freno',
+            'quantity' => 1,
+            'unit_price' => 45.00,
+        ]);
+
+        $order->addItem([
+            'type' => 'labor',
+            'description' => 'Mano de obra instalacion',
+            'quantity' => 1,
+            'unit_price' => 25.00,
+        ]);
+
+        // Test loading work order into POS
+        $component = \Livewire\Livewire::actingAs($user)
+            ->test(\App\Livewire\Sales::class)
+            ->call('loadWorkOrderToCart', $order->id)
+            ->assertSet('work_order_id', $order->id)
+            ->assertSet('work_order_vehicle.id', $vehicle->id);
+
+        $this->assertEquals($customer->id, $component->get('customer')['id']);
+        $this->assertCount(2, $component->get('cart'));
+    }
 }
