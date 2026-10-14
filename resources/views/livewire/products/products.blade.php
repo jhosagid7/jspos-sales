@@ -60,6 +60,7 @@
                                     <i class="fa fa-download"></i> Exportar
                                 </a>
 
+                                @if(\App\Models\Configuration::first()?->show_sync_bags_button)
                                 <button class="btn btn-outline-primary" wire:click="syncToJsBolsas" wire:loading.attr="disabled" title="Sincronizar catálogo de bolsas con JSBolsas Pro">
                                     <span wire:loading.remove wire:target="syncToJsBolsas">
                                         <i class="fa fa-refresh me-1"></i> Sincronizar JSBolsas
@@ -68,6 +69,7 @@
                                         <i class="fa fa-spinner fa-spin me-1"></i> Sincronizando...
                                     </span>
                                 </button>
+                                @endif
                                 @endcan
                             </div>
                         </div>

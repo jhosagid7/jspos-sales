@@ -78,6 +78,7 @@ class Configuration extends Model
         'sales_edit_timeout',
         'soplados_warehouse_id',
         'bolsas_warehouse_id',
+        'show_sync_bags_button',
         'production_materials_warehouse_id',
         'sequential_cut_off_date',
         'whatsapp_rate_groups',
@@ -173,6 +174,7 @@ class Configuration extends Model
         'sales_show_breakdown_freight' => 'boolean',
         'sales_show_warehouse' => 'boolean',
         'sales_show_driver' => 'boolean',
+        'show_sync_bags_button' => 'boolean',
     ];
 
     public function defaultWarehouse()

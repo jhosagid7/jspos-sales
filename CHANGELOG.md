@@ -1,3 +1,25 @@
+## [1.10.465] - 2026-10-14
+
+### Fixed (Corrección de relación indefinida payments en modelo Purchase y HeaderComposer)
+- **Corrección de Error 500 en Header de Notificaciones**:
+  - `HeaderComposer.php`: Corregido eager loading de `payments` a `payables` en la consulta de compras a crédito vencidas (`noty_purchases`), solucionando `RelationNotFoundException: Call to undefined relationship [payments] on model [App\Models\Purchase]`.
+  - `Purchase.php`: Agregado método alias `payments()` delegando a `payables()`, garantizando retrocompatibilidad y previniendo excepciones si cualquier otra vista o componente invoca `$purchase->payments`.
+- **Pruebas Automatizadas (TDD)**:
+  - `OverdueNotificationHeaderTest.php`: Agregada prueba unitaria/de integración verificando la consulta de compras vencidas y la existencia y resolución de la relación `payments` en `Purchase`.
+
+## [1.10.464] - 2026-10-07
+
+### Added & Enhanced (Control de Visibilidad de Sincronización JSBolsas Pro en Configuración)
+- **Configuración Centralizada de Visibilidad del Botón de Sincronización**:
+  - `configurations`: Creada migración agregando columna booleana `show_sync_bags_button` con valor por defecto `false` (oculto para clientes generales).
+  - `Configuration.php`: Agregado `show_sync_bags_button` al `$fillable` y al arreglo `$casts` como booleano.
+  - `Settings.php` & `settings.blade.php`: Agregado interruptor en la pestaña de Producción para activar/desactivar la visualización del botón de sincronización de catálogo.
+- **Protección y Ocultación Condicional en Productos**:
+  - `products.blade.php`: El botón "Sincronizar JSBolsas" ahora solo se muestra si `show_sync_bags_button` está activo en la configuración.
+  - `Products.php`: Método `syncToJsBolsas()` verifica el estado de la bandera antes de invocar el servicio, evitando disparos accidentales.
+- **Pruebas Automatizadas (TDD)**:
+  - `BagCatalogSyncTest.php`: Cobertura completa probando que el botón y su backend respetan la bandera de configuración y que los administradores pueden activarlo/desactivarlo desde los ajustes.
+
 ## [1.10.463] - 2026-10-07
 
 ### Added & Enhanced (Sincronización de Catálogo de Bolsas con JSBolsas Pro en la Nube)

@@ -50,6 +50,14 @@ class Purchase extends Model
         return $this->hasMany(Payable::class)->orderBy('id', 'desc');
     }
 
+    /**
+     * Alias for payables relationship to prevent RelationNotFoundException.
+     */
+    public function payments()
+    {
+        return $this->payables();
+    }
+
     //scopes
     // public function scopeWithDebt($query)
     // {

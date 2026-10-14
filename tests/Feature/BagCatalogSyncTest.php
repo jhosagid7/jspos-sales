@@ -7,8 +7,10 @@ use App\Models\User;
 use App\Models\Product;
 use App\Models\Category;
 use App\Models\Supplier;
+use App\Models\Configuration;
 use App\Services\BagCatalogSyncService;
 use App\Livewire\Products;
+use App\Livewire\Settings;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Http;
 use Livewire\Livewire;
@@ -96,15 +98,37 @@ class BagCatalogSyncTest extends TestCase
         });
     }
 
-    public function test_livewire_products_sync_button_action()
+    public function test_livewire_products_sync_button_respects_configuration_flag()
     {
         $this->seed(\Database\Seeders\CurrencySeeder::class);
+
+        $config = Configuration::create([
+            'business_name' => 'Empresa Test',
+            'address' => 'Calle 1',
+            'city' => 'Caracas',
+            'taxpayer_id' => 'J-12345678',
+            'vat' => 16,
+            'decimals' => 2,
+            'printer_name' => 'POS-80',
+            'credit_days' => 15,
+            'show_sync_bags_button' => false,
+        ]);
 
         $user = User::factory()->create();
         $role = \Spatie\Permission\Models\Role::findOrCreate('Admin');
         $permission = \Spatie\Permission\Models\Permission::findOrCreate('products.index');
         $role->givePermissionTo([$permission]);
         $user->assignRole($role);
+
+        // When flag is false, calling syncToJsBolsas alerts that it is disabled
+        Livewire::actingAs($user)
+            ->test(Products::class)
+            ->call('syncToJsBolsas')
+            ->assertDispatched('noty', msg: 'La sincronización con JSBolsas Pro está desactivada en la configuración.', type: 'error')
+            ->assertDontSee('Sincronizar JSBolsas');
+
+        // When flag is enabled
+        $config->update(['show_sync_bags_button' => true]);
 
         Http::fake([
             BagCatalogSyncService::CLOUD_URL => Http::response([
@@ -115,7 +139,37 @@ class BagCatalogSyncTest extends TestCase
 
         Livewire::actingAs($user)
             ->test(Products::class)
+            ->assertSee('Sincronizar JSBolsas')
             ->call('syncToJsBolsas')
             ->assertDispatched('noty');
+    }
+
+    public function test_settings_can_toggle_show_sync_bags_button()
+    {
+        $this->seed(\Database\Seeders\CurrencySeeder::class);
+
+        $config = Configuration::create([
+            'business_name' => 'Empresa Test',
+            'address' => 'Calle 1',
+            'city' => 'Caracas',
+            'taxpayer_id' => 'J-12345678',
+            'vat' => 16,
+            'decimals' => 2,
+            'printer_name' => 'POS-80',
+            'credit_days' => 15,
+            'show_sync_bags_button' => false,
+        ]);
+
+        $user = User::factory()->create();
+        $role = \Spatie\Permission\Models\Role::findOrCreate('Super Admin');
+        $user->assignRole($role);
+
+        Livewire::actingAs($user)
+            ->test(Settings::class)
+            ->set('showSyncBagsButton', true)
+            ->call('saveConfig')
+            ->assertDispatched('noty', msg: 'Configuración General Actualizada');
+
+        $this->assertTrue((bool)$config->fresh()->show_sync_bags_button);
     }
 }

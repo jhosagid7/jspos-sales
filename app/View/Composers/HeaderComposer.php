@@ -91,7 +91,7 @@ class HeaderComposer
                 ) >= 0
             ")
             ->select('purchases.*')
-            ->with(['supplier', 'payments'])
+            ->with(['supplier', 'payables'])
             ->orderBy('purchases.id', 'asc');
 
         $noty_purchases = $purchasesQuery->get()

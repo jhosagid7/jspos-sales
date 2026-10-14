@@ -57,6 +57,7 @@ class Settings extends Component
     
     public $defaultWarehouseId;
     public $sopladosWarehouseId, $bolsasWarehouseId, $productionMaterialsWarehouseId;
+    public $showSyncBagsButton = false;
     public $warehouses = [];
 
     // Regional Terminology Settings
@@ -132,6 +133,7 @@ class Settings extends Component
             $this->sopladosWarehouseId = $config->soplados_warehouse_id;
             $this->bolsasWarehouseId = $config->bolsas_warehouse_id;
             $this->productionMaterialsWarehouseId = $config->production_materials_warehouse_id;
+            $this->showSyncBagsButton = (bool) ($config->show_sync_bags_button ?? false);
             $this->treasuryCutoffHour = $config->treasury_cutoff_hour ?? '17:00';
             $this->treasuryAutoClose = (bool) $config->treasury_auto_close;
             
@@ -389,6 +391,7 @@ class Settings extends Component
                 'default_warehouse_id' => $this->defaultWarehouseId,
                 'soplados_warehouse_id' => $this->sopladosWarehouseId,
             'bolsas_warehouse_id' => $this->bolsasWarehouseId,
+            'show_sync_bags_button' => $this->showSyncBagsButton ? 1 : 0,
             'production_materials_warehouse_id' => $this->productionMaterialsWarehouseId,
                 'sales_edit_timeout' => $this->convertToSeconds($this->salesEditTimeout),
                 'backup_emails' => $backupEmailsArray,
