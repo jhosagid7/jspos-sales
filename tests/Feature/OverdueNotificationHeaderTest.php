@@ -58,4 +58,39 @@ class OverdueNotificationHeaderTest extends TestCase
         $sale->delete();
         $customer->delete();
     }
+
+    public function test_header_composer_handles_overdue_purchases_relationship()
+    {
+        $user = User::factory()->create();
+        $this->actingAs($user);
+
+        $supplier = \App\Models\Supplier::create([
+            'name' => 'Supplier Test Overdue',
+            'taxpayer_id' => 'J-99999999',
+            'phone' => '123456789',
+            'address' => 'Test Address',
+        ]);
+
+        $purchase = \App\Models\Purchase::create([
+            'total' => 200.00,
+            'items' => 1,
+            'status' => 'pending',
+            'type' => 'credit',
+            'supplier_id' => $supplier->id,
+            'user_id' => $user->id,
+            'created_at' => now()->subDays(60),
+        ]);
+
+        $composer = new \App\View\Composers\HeaderComposer();
+        $view = \Illuminate\Support\Facades\View::make('layouts.theme.header');
+        $composer->compose($view);
+
+        $notyPurchases = $view->getData()['noty_purchases'] ?? collect();
+
+        $this->assertTrue($notyPurchases->contains('id', $purchase->id));
+        $this->assertNotNull($purchase->payments);
+
+        $purchase->forceDelete();
+        $supplier->delete();
+    }
 }

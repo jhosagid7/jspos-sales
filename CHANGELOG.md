@@ -1,3 +1,12 @@
+## [1.10.465] - 2026-10-14
+
+### Fixed (Corrección de relación indefinida payments en modelo Purchase y HeaderComposer)
+- **Corrección de Error 500 en Header de Notificaciones**:
+  - `HeaderComposer.php`: Corregido eager loading de `payments` a `payables` en la consulta de compras a crédito vencidas (`noty_purchases`), solucionando `RelationNotFoundException: Call to undefined relationship [payments] on model [App\Models\Purchase]`.
+  - `Purchase.php`: Agregado método alias `payments()` delegando a `payables()`, garantizando retrocompatibilidad y previniendo excepciones si cualquier otra vista o componente invoca `$purchase->payments`.
+- **Pruebas Automatizadas (TDD)**:
+  - `OverdueNotificationHeaderTest.php`: Agregada prueba unitaria/de integración verificando la consulta de compras vencidas y la existencia y resolución de la relación `payments` en `Purchase`.
+
 ## [1.10.464] - 2026-10-07
 
 ### Added & Enhanced (Control de Visibilidad de Sincronización JSBolsas Pro en Configuración)
