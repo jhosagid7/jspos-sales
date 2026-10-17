@@ -1,3 +1,21 @@
+## [1.10.466] - 2026-10-16
+
+### Fixed & Enhanced (Reportes de Ingresos Semanal/Mensual Dinámicos y Cierre Diario)
+- **Categorización Dinámica de Bancos**:
+  - `IncomeReportService.php`: Creado servicio centralizado que obtiene y resuelve dinámicamente las categorías bancarias desde la base de datos (`Bank::where('state', 1)`) y desde las transacciones del período, eliminando la limitación de 8 categorías fijas.
+  - `WeeklyIncomeReport.php`: Integrado escaneo y generación dinámica de bancos en la matriz semanal de ventas de contado y cobranzas, evitando que bancos nuevos (ej. Banco Banplus) se omitan o que cuentas diferenciadas (ej. Banco de Venezuela - Darlis) se solapen.
+  - `MonthlyIncomeReport.php`: Adaptada la generación de semanas del mes para soportar cualquier cantidad de bancos dinámicos con totales consolidados y preliminares.
+  - `ReportController.php`: Refactorizados `weeklyIncomeReportPdf` y `monthlyIncomeReportPdf` para delegar directamente en los componentes Livewire, eliminando ~300 líneas de código duplicado y asegurando sincronización matemática exacta entre pantalla y PDF.
+  - `SendDailyClosureNotification.php`: Actualizado el comando de cierre diario de ventas vía WhatsApp y correo para incluir los bancos dinámicos con movimientos.
+  - `weekly-income-report-pdf.blade.php`: Optimizado espaciado de celdas y tamaño tipográfico para asegurar que el reporte semanal encaje limpiamente en 1 sola página horizontal A4.
+- **Pruebas Automatizadas (TDD)**:
+  - `WeeklyIncomeReportTest.php` y `MonthlyIncomeReportTest.php`: Incorporación de pruebas unitarias y de integración que validan la visualización de bancos creados dinámicamente, la persistencia de cobros y ventas, la exportación de PDFs y el comando de cierre diario.
+
+### Added (Módulo Taller Mecánico, Órdenes de Servicio y Facturación Forma Libre)
+- **Gestión Integral de Taller Automotriz**:
+  - Módulo completo de vehículos vinculados a clientes, creación y ciclo de vida de órdenes de servicio (`WorkOrders`), asignación de mecánicos con comisiones configurables, y facturación fluida de repuestos y mano de obra a través del POS.
+  - Soporte de configuración e impresión en formato forma libre para facturas fiscales.
+
 ## [1.10.465] - 2026-10-14
 
 ### Fixed (Corrección de relación indefinida payments en modelo Purchase y HeaderComposer)

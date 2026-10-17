@@ -225,4 +225,60 @@ class MonthlyIncomeReportTest extends TestCase
         $response->assertStatus(200);
         $response->assertHeader('content-type', 'application/pdf');
     }
+
+    public function test_dynamic_banks_appear_in_monthly_income_report()
+    {
+        $this->actingAs($this->adminUser);
+
+        \App\Models\Bank::create(['name' => 'BANCO BANPLUS', 'account_number' => '01740000000000000000', 'cedula' => 'J12345678', 'phone' => '04140000000', 'state' => 1, 'sort' => 1]);
+        \App\Models\Bank::create(['name' => 'BANCO DE VENEZUELA - DARLIS', 'account_number' => '01020000000000000001', 'cedula' => 'V12345678', 'phone' => '04141111111', 'state' => 1, 'sort' => 2]);
+
+        $month = '2026-06';
+        Carbon::setTestNow(Carbon::parse('2026-06-15'));
+
+        $customer = Customer::create([
+            'name' => 'Test Customer Dynamic Monthly',
+            'taxpayer_id' => '112233',
+            'address' => 'Test',
+            'city' => 'Test',
+            'type' => 'Consumidor Final'
+        ]);
+
+        $sale = Sale::create([
+            'total' => 150.00,
+            'total_usd' => 150.00,
+            'items' => 1,
+            'customer_id' => $customer->id,
+            'user_id' => $this->adminUser->id,
+            'created_at' => '2026-06-03 10:00:00',
+            'invoice_number' => 'FDM001',
+            'status' => 'paid',
+            'type' => 'bank',
+        ]);
+
+        SalePaymentDetail::create([
+            'sale_id' => $sale->id,
+            'payment_method' => 'bank',
+            'currency_code' => 'VES',
+            'amount' => 5250.00,
+            'exchange_rate' => 35.00, // 150 USD
+            'amount_in_primary_currency' => 150.00,
+            'bank_name' => 'BANCO BANPLUS',
+        ]);
+
+        Livewire::test(\App\Livewire\Reports\MonthlyIncomeReport::class)
+            ->set('selectedMonth', $month)
+            ->assertViewHas('categories', function ($categories) {
+                return isset($categories['BANCO BANPLUS']) && isset($categories['BANCO DE VENEZUELA - DARLIS']);
+            })
+            ->assertViewHas('monthlyTotals', function ($monthlyTotals) {
+                $this->assertEquals(150.00, $monthlyTotals['BANCO BANPLUS']['contado']);
+                return true;
+            });
+
+        $response = $this->get(route('reports.monthly.income.pdf', ['month' => $month]));
+        $response->assertStatus(200);
+
+        Carbon::setTestNow();
+    }
 }

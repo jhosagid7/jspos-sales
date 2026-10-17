@@ -14,6 +14,8 @@ class Configuration extends Model
     protected $fillable = [
         'plan_type',
         'addon_modules',
+        'enable_forma_libre',
+        'forma_libre_template',
         'business_name',
         'seller_assignment_mode',
         'commission_calculation_mode',
@@ -125,6 +127,7 @@ class Configuration extends Model
     ];
 
     protected $casts = [
+        'enable_forma_libre' => 'boolean',
         'multicurrency_enabled' => 'boolean',
         'ai_settings' => 'array',
         'custom_labels' => 'array',

@@ -283,4 +283,99 @@ class WeeklyIncomeReportTest extends TestCase
         $response->assertStatus(200);
         $response->assertHeader('content-type', 'application/pdf');
     }
+
+    public function test_dynamic_banks_appear_in_weekly_income_report_and_daily_closure()
+    {
+        $this->actingAs($this->adminUser);
+
+        // Create banks in DB
+        \App\Models\Bank::create(['name' => 'BANCO BANPLUS', 'account_number' => '01740000000000000000', 'cedula' => 'J12345678', 'phone' => '04140000000', 'state' => 1, 'sort' => 1]);
+        \App\Models\Bank::create(['name' => 'BANCO DE VENEZUELA - DARLIS', 'account_number' => '01020000000000000001', 'cedula' => 'V12345678', 'phone' => '04141111111', 'state' => 1, 'sort' => 2]);
+        \App\Models\Bank::create(['name' => 'BANCO DE VENEZUELA', 'account_number' => '01020000000000000002', 'cedula' => 'J99999999', 'phone' => '04142222222', 'state' => 1, 'sort' => 3]);
+
+        $monday = '2026-06-08';
+        Carbon::setTestNow(Carbon::parse($monday));
+
+        $customer = Customer::create([
+            'name' => 'Test Customer Banplus',
+            'taxpayer_id' => '998877',
+            'address' => 'Test',
+            'city' => 'Test',
+            'type' => 'Consumidor Final'
+        ]);
+
+        // Sale paid with BANCO BANPLUS
+        $saleBanplus = Sale::create([
+            'total' => 200.00,
+            'total_usd' => 200.00,
+            'items' => 1,
+            'customer_id' => $customer->id,
+            'user_id' => $this->adminUser->id,
+            'created_at' => '2026-06-08 11:00:00',
+            'invoice_number' => 'FB001',
+            'status' => 'paid',
+            'type' => 'bank',
+        ]);
+
+        SalePaymentDetail::create([
+            'sale_id' => $saleBanplus->id,
+            'payment_method' => 'bank',
+            'currency_code' => 'VES',
+            'amount' => 7000.00,
+            'exchange_rate' => 35.00, // 200 USD
+            'amount_in_primary_currency' => 200.00,
+            'bank_name' => 'BANCO BANPLUS',
+        ]);
+
+        // Collection payment paid with BANCO DE VENEZUELA - DARLIS
+        $sheet = CollectionSheet::create([
+            'sheet_number' => '20260608-002',
+            'opened_by' => $this->adminUser->id,
+            'user_id' => $this->adminUser->id,
+            'opened_at' => '2026-06-08 08:00:00',
+            'status' => 'open'
+        ]);
+
+        Payment::create([
+            'customer_id' => $customer->id,
+            'user_id' => $this->adminUser->id,
+            'collection_sheet_id' => $sheet->id,
+            'pay_way' => 'bank',
+            'currency' => 'VES',
+            'amount' => 3500.00,
+            'exchange_rate' => 35.00, // 100 USD
+            'status' => 'approved',
+            'pay_date' => $monday,
+            'bank' => 'BANCO DE VENEZUELA - DARLIS'
+        ]);
+
+        // Test Livewire component has both banks dynamically and proper amounts
+        Livewire::test(\App\Livewire\Reports\WeeklyIncomeReport::class)
+            ->set('selectedDate', $monday)
+            ->assertViewHas('categories', function ($categories) {
+                return isset($categories['BANCO BANPLUS']) && isset($categories['BANCO DE VENEZUELA - DARLIS']);
+            })
+            ->assertViewHas('report', function ($report) {
+                $lunes = $report['LUNES']['data'];
+                $this->assertEquals(200.00, $lunes['BANCO BANPLUS']['contado']);
+                $this->assertEquals(0.00, $lunes['BANCO BANPLUS']['cobranza']);
+
+                $this->assertEquals(0.00, $lunes['BANCO DE VENEZUELA - DARLIS']['contado']);
+                $this->assertEquals(100.00, $lunes['BANCO DE VENEZUELA - DARLIS']['cobranza']);
+
+                // Verify that generic BANCO DE VENEZUELA did not absorb DARLIS
+                $this->assertEquals(0.00, $lunes['BANCO DE VENEZUELA']['cobranza']);
+                return true;
+            });
+
+        // Test PDF export returns 200
+        $response = $this->get(route('reports.weekly.income.pdf', ['date' => $monday]));
+        $response->assertStatus(200);
+
+        // Test Daily Closure command
+        $this->artisan('app:send-daily-closure', ['date' => $monday])
+            ->assertExitCode(0);
+
+        Carbon::setTestNow();
+    }
 }

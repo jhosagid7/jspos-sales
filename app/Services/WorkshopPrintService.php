@@ -116,6 +116,40 @@ class WorkshopPrintService
         return Pdf::loadView('pdf.workshop-work-order', compact('order', 'config', 'type'));
     }
 
+    /**
+     * Generate Forma Libre PDF for pre-printed continuous/letter invoice sheets.
+     *
+     * @param \App\Models\Sale $sale
+     * @param bool|null $showBackground When true, embeds pre-printed letterhead as background preview.
+     */
+    public function generateFormaLibrePdf(\App\Models\Sale $sale, ?bool $showBackground = null)
+    {
+        $sale->loadMissing(['customer', 'seller', 'user', 'details.product', 'workOrder.vehicle']);
+        $config = Configuration::first();
+        $template = ConfigurationService::getFormaLibreTemplate() ?: 'bucaros';
+        $viewName = view()->exists("pdf.forma-libre-{$template}") ? "pdf.forma-libre-{$template}" : 'pdf.forma-libre-bucaros';
+
+        if ($showBackground === null) {
+            $showBackground = request()->boolean('preview') || request()->boolean('bg');
+        }
+
+        $backgroundImage = null;
+        if ($showBackground) {
+            $imagePath = public_path("assets/img/forma-libre/{$template}.jpg");
+            if (!file_exists($imagePath)) {
+                $imagePath = public_path("assets/img/forma-libre/bucaros.jpg");
+            }
+            if (file_exists($imagePath)) {
+                $type = pathinfo($imagePath, PATHINFO_EXTENSION);
+                $data = file_get_contents($imagePath);
+                $backgroundImage = 'data:image/' . $type . ';base64,' . base64_encode($data);
+            }
+        }
+
+        return Pdf::loadView($viewName, compact('sale', 'config', 'showBackground', 'backgroundImage'))
+            ->setPaper('letter', 'portrait');
+    }
+
     protected function formatTwoColumns(string $left, string $right, int $maxWidth = 48): string
     {
         $rightLen = strlen($right);

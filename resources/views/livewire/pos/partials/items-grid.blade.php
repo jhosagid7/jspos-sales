@@ -491,6 +491,11 @@
                     <button wire:click.prevent="printLastPdf" type="button" class="btn btn-outline-light-2x txt-dark" title="Imprimir Factura Carta PDF">
                         <i class="icofont icofont-file-pdf text-danger me-1"></i> Factura
                     </button>
+                    @if($enableFormaLibre)
+                    <button wire:click.prevent="printLastFormaLibre" type="button" class="btn btn-outline-light-2x txt-dark" title="Imprimir en Hoja Membretada Forma Libre">
+                        <i class="icofont icofont-print text-warning me-1"></i> Forma Libre
+                    </button>
+                    @endif
                 </div>
 
             </div>

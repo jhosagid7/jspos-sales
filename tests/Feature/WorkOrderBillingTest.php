@@ -291,4 +291,101 @@ class WorkOrderBillingTest extends TestCase
         $this->assertEquals($customer->id, $component->get('customer')['id']);
         $this->assertCount(2, $component->get('cart'));
     }
+
+    public function test_can_save_sale_with_manual_fiscal_number_and_generate_forma_libre_pdf(): void
+    {
+        $user = User::factory()->create();
+        $customer = $this->createCustomer();
+        $vehicle = $this->createVehicle($customer);
+        $product = $this->createProduct(['price' => 100.00]);
+
+        $sale = Sale::create([
+            'customer_id' => $customer->id,
+            'user_id' => $user->id,
+            'total' => 116.00,
+            'total_usd' => 116.00,
+            'items' => 1,
+            'discount' => 0,
+            'status' => 'paid',
+            'type' => 'cash',
+            'document_type' => 'invoice',
+            'fiscal_number' => '001512',
+            'is_fiscal' => true,
+            'invoice_number' => 'F00000001',
+            'vehicle_id' => $vehicle->id,
+        ]);
+
+        $sale->details()->create([
+            'product_id' => $product->id,
+            'quantity' => 1,
+            'sale_price' => 100.00,
+            'regular_price' => 100.00,
+            'discount' => 0,
+            'price_usd' => 100.00,
+            'exchange_rate' => 1,
+            'custom_name' => 'Pastilla de Freno Delanteras Toyota',
+        ]);
+
+        $this->assertEquals('001512', $sale->fiscal_number);
+        $this->assertTrue($sale->is_fiscal);
+        $this->assertEquals('invoice', $sale->document_type);
+
+        // Test PDF generation via WorkshopPrintService
+        $printService = app(\App\Services\WorkshopPrintService::class);
+        $pdf = $printService->generateFormaLibrePdf($sale);
+        $this->assertNotEmpty($pdf->output());
+    }
+
+    public function test_cannot_save_sale_with_duplicate_fiscal_number(): void
+    {
+        $user = User::factory()->create();
+        $customer = $this->createCustomer();
+        $vehicle = $this->createVehicle($customer);
+        \App\Models\Warehouse::firstOrCreate(
+            ['id' => 1],
+            ['name' => 'Almacen Principal', 'is_active' => 1]
+        );
+
+        Sale::create([
+            'customer_id' => $customer->id,
+            'user_id' => $user->id,
+            'total' => 50.00,
+            'total_usd' => 50.00,
+            'items' => 1,
+            'discount' => 0,
+            'status' => 'paid',
+            'type' => 'cash',
+            'document_type' => 'invoice',
+            'fiscal_number' => '001512',
+            'is_fiscal' => true,
+            'invoice_number' => 'F00000001',
+        ]);
+
+        $order = WorkOrder::create([
+            'customer_id' => $customer->id,
+            'vehicle_id' => $vehicle->id,
+            'user_id' => $user->id,
+            'entry_mileage' => 10000,
+            'initial_diagnosis' => 'Revision',
+        ]);
+        $order->addItem([
+            'type' => 'labor',
+            'description' => 'Servicio',
+            'quantity' => 1,
+            'unit_price' => 50.00,
+        ]);
+
+        $comp = \Livewire\Livewire::actingAs($user)
+            ->test(\App\Livewire\Sales::class)
+            ->call('loadWorkOrderToCart', $order->id)
+            ->set('totalInPrimaryCurrency', 50.00)
+            ->set('document_type', 'invoice')
+            ->set('fiscal_number', '001512')
+            ->call('Store');
+
+        $comp->assertDispatched('noty', function ($name, $params) {
+            return str_contains($params['msg'], "EL NÚMERO DE FACTURA FISCAL '001512' YA FUE UTILIZADO");
+        });
+    }
 }
+

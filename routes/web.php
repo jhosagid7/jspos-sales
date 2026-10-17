@@ -301,6 +301,7 @@ Route::middleware('auth')->group(function () {
     Route::get('sales/{sale}/original', [Sales::class, 'generatePdfInvoiceOriginal'])->name('pos.sales.generatePdfInvoiceOriginal')->middleware('can:sales.pdf');
     Route::get('sales/{sale}/internal', [Sales::class, 'generatePdfInternalInvoice'])->name('pos.sales.generatePdfInternal')->middleware('can:sales.pdf');
     Route::get('sales/{sale}/internal-original', [Sales::class, 'generatePdfInternalInvoiceOriginal'])->name('pos.sales.generatePdfInternalOriginal')->middleware('can:sales.pdf');
+    Route::get('sales/{sale}/forma-libre', [Sales::class, 'generatePdfFormaLibre'])->name('pos.sales.generatePdfFormaLibre')->middleware('can:sales.pdf');
     Route::get('returns/{saleReturn}/pdf', [Sales::class, 'generateCreditNotePdfEndpoint'])->name('pos.returns.generateCreditNotePdf')->middleware('can:sales.pdf');
     //generate pdf orders invoices
     Route::get('orders/{order}', [Sales::class, 'generatePdfOrderInvoice'])->name('pos.orders.generatePdfOrderInvoice')->middleware('can:sales.pdf');

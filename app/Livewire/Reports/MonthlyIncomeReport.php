@@ -92,16 +92,21 @@ class MonthlyIncomeReport extends Component
             $weekIndex++;
         }
 
-        $categories = [
-            'DOLARES' => 'DOLARES',
-            'PESOS' => 'PESOS',
-            'EFECTIVO BS' => 'EFECTIVO BS',
-            'BANCO DE VENEZUELA' => 'BANCO DE VENEZUELA',
-            'BANCO PROVINCIAL' => 'BANCO PROVINCIAL',
-            'BANCO MERCANTIL' => 'BANCO MERCANTIL',
-            'ZELLE' => 'ZELLE',
-            'USDT' => 'USDT'
-        ];
+        // Scan transactions for any bank names used in this month
+        $saleBanks = SalePaymentDetail::whereBetween('created_at', [$startOfMonth, $endOfMonth])
+            ->whereNotNull('bank_name')
+            ->where('bank_name', '!=', '')
+            ->pluck('bank_name')
+            ->toArray();
+
+        $paymentBanks = Payment::whereBetween('created_at', [$startOfMonth, $endOfMonth])
+            ->whereNotNull('bank')
+            ->where('bank', '!=', '')
+            ->pluck('bank')
+            ->toArray();
+
+        $extraBanks = array_unique(array_merge($saleBanks, $paymentBanks));
+        $categories = \App\Services\IncomeReportService::getCategories($extraBanks);
 
         // Structure to hold values per week and category
         $report = [];
@@ -150,27 +155,14 @@ class MonthlyIncomeReport extends Component
                         $curr = strtoupper($d->currency_code);
                         $bank = strtoupper($d->bank_name ?? '');
 
-                        if ($method === 'cash') {
-                            if ($curr === 'USD') {
-                                $report['DOLARES'][$wKey]['contado'] += $amtUSD;
-                            } elseif ($curr === 'COP') {
-                                $report['PESOS'][$wKey]['contado'] += $amtUSD;
-                            } elseif ($curr === 'VES' || $curr === 'VED') {
-                                $report['EFECTIVO BS'][$wKey]['contado'] += $amtUSD;
-                            }
-                        } elseif ($method === 'usdt' || str_contains($bank, 'USDT') || str_contains($bank, 'BINANCE') || str_contains($bank, 'CRIPTO')) {
-                            $report['USDT'][$wKey]['contado'] += $amtUSD;
-                        } elseif ($method === 'zelle' || str_contains($bank, 'ZELLE')) {
-                            $report['ZELLE'][$wKey]['contado'] += $amtUSD;
-                        } elseif ($method === 'bank' || $method === 'deposit') {
-                            if (str_contains($bank, 'PROVINCIAL')) {
-                                $report['BANCO PROVINCIAL'][$wKey]['contado'] += $amtUSD;
-                            } elseif (str_contains($bank, 'MERCANTIL')) {
-                                $report['BANCO MERCANTIL'][$wKey]['contado'] += $amtUSD;
-                            } elseif (str_contains($bank, 'VENEZUELA') || str_contains($bank, 'BDV')) {
-                                $report['BANCO DE VENEZUELA'][$wKey]['contado'] += $amtUSD;
+                        $targetCat = \App\Services\IncomeReportService::resolveCategory($method, $curr, $bank, $categories);
+                        if (!isset($report[$targetCat])) {
+                            $report[$targetCat] = [];
+                            foreach ($weeks as $wk => $wv) {
+                                $report[$targetCat][$wk] = ['contado' => 0.0, 'cobranza' => 0.0];
                             }
                         }
+                        $report[$targetCat][$wKey]['contado'] += $amtUSD;
                     }
 
                     // Subtract change
@@ -193,28 +185,14 @@ class MonthlyIncomeReport extends Component
                         $netAmt = ($sale->cash - $sale->change) / $rate;
                         $curr = strtoupper($sale->primary_currency_code ?? 'USD');
 
-                        if ($sale->type === 'cash') {
-                            if ($curr === 'USD') {
-                                $report['DOLARES'][$wKey]['contado'] += $netAmt;
-                            } elseif ($curr === 'COP') {
-                                $report['PESOS'][$wKey]['contado'] += $netAmt;
-                            } elseif ($curr === 'VES' || $curr === 'VED') {
-                                $report['EFECTIVO BS'][$wKey]['contado'] += $netAmt;
-                            }
-                        } elseif ($sale->type === 'usdt' || str_contains(strtoupper($sale->bank_name ?? ''), 'USDT') || str_contains(strtoupper($sale->bank_name ?? ''), 'BINANCE') || str_contains(strtoupper($sale->bank_name ?? ''), 'CRIPTO')) {
-                            $report['USDT'][$wKey]['contado'] += $netAmt;
-                        } elseif ($sale->type === 'zelle') {
-                            $report['ZELLE'][$wKey]['contado'] += $netAmt;
-                        } elseif ($sale->type === 'bank') {
-                            $bank = strtoupper($sale->bank_name ?? '');
-                            if (str_contains($bank, 'PROVINCIAL')) {
-                                $report['BANCO PROVINCIAL'][$wKey]['contado'] += $netAmt;
-                            } elseif (str_contains($bank, 'MERCANTIL')) {
-                                $report['BANCO MERCANTIL'][$wKey]['contado'] += $netAmt;
-                            } elseif (str_contains($bank, 'VENEZUELA') || str_contains($bank, 'BDV')) {
-                                $report['BANCO DE VENEZUELA'][$wKey]['contado'] += $netAmt;
+                        $targetCat = \App\Services\IncomeReportService::resolveCategory($sale->type, $curr, $sale->bank_name ?? '', $categories);
+                        if (!isset($report[$targetCat])) {
+                            $report[$targetCat] = [];
+                            foreach ($weeks as $wk => $wv) {
+                                $report[$targetCat][$wk] = ['contado' => 0.0, 'cobranza' => 0.0];
                             }
                         }
+                        $report[$targetCat][$wKey]['contado'] += $netAmt;
                     }
                 }
             }
@@ -239,27 +217,14 @@ class MonthlyIncomeReport extends Component
                     $curr = strtoupper($p->currency);
                     $bank = strtoupper($p->bank ?? '');
 
-                    if ($payWay === 'cash') {
-                        if ($curr === 'USD') {
-                            $report['DOLARES'][$wKey]['cobranza'] += $amtUSD;
-                        } elseif ($curr === 'COP') {
-                            $report['PESOS'][$wKey]['cobranza'] += $amtUSD;
-                        } elseif ($curr === 'VES' || $curr === 'VED') {
-                            $report['EFECTIVO BS'][$wKey]['cobranza'] += $amtUSD;
-                        }
-                    } elseif ($payWay === 'usdt' || str_contains($bank, 'USDT') || str_contains($bank, 'BINANCE') || str_contains($bank, 'CRIPTO')) {
-                        $report['USDT'][$wKey]['cobranza'] += $amtUSD;
-                    } elseif ($payWay === 'zelle' || str_contains($bank, 'ZELLE')) {
-                        $report['ZELLE'][$wKey]['cobranza'] += $amtUSD;
-                    } elseif ($payWay === 'bank' || $payWay === 'deposit') {
-                        if (str_contains($bank, 'PROVINCIAL')) {
-                            $report['BANCO PROVINCIAL'][$wKey]['cobranza'] += $amtUSD;
-                        } elseif (str_contains($bank, 'MERCANTIL')) {
-                            $report['BANCO MERCANTIL'][$wKey]['cobranza'] += $amtUSD;
-                        } elseif (str_contains($bank, 'VENEZUELA') || str_contains($bank, 'BDV')) {
-                            $report['BANCO DE VENEZUELA'][$wKey]['cobranza'] += $amtUSD;
+                    $targetCat = \App\Services\IncomeReportService::resolveCategory($payWay, $curr, $bank, $categories);
+                    if (!isset($report[$targetCat])) {
+                        $report[$targetCat] = [];
+                        foreach ($weeks as $wk => $wv) {
+                            $report[$targetCat][$wk] = ['contado' => 0.0, 'cobranza' => 0.0];
                         }
                     }
+                    $report[$targetCat][$wKey]['cobranza'] += $amtUSD;
                 }
             }
 
@@ -293,8 +258,8 @@ class MonthlyIncomeReport extends Component
             $subtotalContado = 0.0;
             $subtotalCobranza = 0.0;
             foreach ($categories as $cat) {
-                $subtotalContado += $report[$cat][$wKey]['contado'];
-                $subtotalCobranza += $report[$cat][$wKey]['cobranza'];
+                $subtotalContado += $report[$cat][$wKey]['contado'] ?? 0.0;
+                $subtotalCobranza += $report[$cat][$wKey]['cobranza'] ?? 0.0;
             }
 
             $weeklyMetrics[$wKey]['subtotal_contado'] = $subtotalContado;
@@ -317,8 +282,8 @@ class MonthlyIncomeReport extends Component
                 'cobranza' => 0.0
             ];
             foreach ($weeks as $wKey => $wVal) {
-                $monthlyTotals[$cat]['contado'] += $report[$cat][$wKey]['contado'];
-                $monthlyTotals[$cat]['cobranza'] += $report[$cat][$wKey]['cobranza'];
+                $monthlyTotals[$cat]['contado'] += $report[$cat][$wKey]['contado'] ?? 0.0;
+                $monthlyTotals[$cat]['cobranza'] += $report[$cat][$wKey]['cobranza'] ?? 0.0;
             }
             $monthlySubtotalContado += $monthlyTotals[$cat]['contado'];
             $monthlySubtotalCobranza += $monthlyTotals[$cat]['cobranza'];
@@ -341,6 +306,7 @@ class MonthlyIncomeReport extends Component
 
         return [
             'weeks' => $weeks,
+            'categories' => $categories,
             'report' => $report,
             'weeklyMetrics' => $weeklyMetrics,
             'monthlyTotals' => $monthlyTotals,

@@ -441,12 +441,25 @@
                                                                                 $tUsd = isset($invObj->net_total_usd) ? (float)$invObj->net_total_usd : ($invObj->total_usd > 0 ? (float)$invObj->total_usd : (float)$invObj->total);
                                                                             @endphp
                                                                             <tr>
-                                                                                <td class="font-weight-bold text-primary">#{{ $invObj->invoice_number ?: $invObj->id }}</td>
+                                                                                <td class="font-weight-bold text-primary">
+                                                                                    #{{ $invObj->invoice_number ?: $invObj->id }}
+                                                                                    @if(!empty($invObj->fiscal_number))
+                                                                                        <br><span class="badge badge-primary text-white" style="font-size: 0.68rem;" title="Factura Fiscal Forma Libre (Talonario #{{ $invObj->fiscal_number }})"><i class="fas fa-file-invoice me-1"></i>FAC: {{ $invObj->fiscal_number }}</span>
+                                                                                    @endif
+                                                                                </td>
                                                                                 <td>{{ \Carbon\Carbon::parse($invObj->created_at)->format('d/m/Y H:i') }}</td>
                                                                                 <td>{{ $invObj->customer_name }}</td>
                                                                                 <td class="text-right font-weight-bold text-success">${{ number_format($tUsd, 2) }}</td>
                                                                                 <td class="text-center">
                                                                                     <div class="d-flex justify-content-center gap-1">
+                                                                                        @if(!empty($invObj->fiscal_number) || !empty($invObj->is_fiscal))
+                                                                                            <a href="{{ route('pos.sales.generatePdfFormaLibre', ['sale' => $invObj->id, 'preview' => 1]) }}" target="_blank" class="btn btn-outline-success btn-xs" title="Vista Previa en Pantalla (con Fondo Membretado)">
+                                                                                                <i class="fas fa-eye"></i>
+                                                                                            </a>
+                                                                                            <a href="{{ route('pos.sales.generatePdfFormaLibre', $invObj->id) }}" target="_blank" class="btn btn-outline-primary btn-xs" title="Imprimir en Talonario Físico (sin fondo)">
+                                                                                                <i class="fas fa-print"></i>
+                                                                                            </a>
+                                                                                        @endif
                                                                                         <a href="{{ route('pos.sales.generatePdfInvoice', $invObj->id) }}" target="_blank" class="btn btn-outline-danger btn-xs" title="Ver Factura PDF">
                                                                                             <i class="fas fa-file-pdf"></i>
                                                                                         </a>
@@ -532,7 +545,12 @@
                                                 $modalTotalUsd += $tUsd;
                                             @endphp
                                             <tr>
-                                                <td class="font-weight-bold text-primary">#{{ $invObj->invoice_number ?: $invObj->id }}</td>
+                                                <td class="font-weight-bold text-primary">
+                                                    #{{ $invObj->invoice_number ?: $invObj->id }}
+                                                    @if(!empty($invObj->fiscal_number))
+                                                        <br><span class="badge badge-primary text-white" style="font-size: 0.68rem;" title="Factura Fiscal Forma Libre (Talonario #{{ $invObj->fiscal_number }})"><i class="fas fa-file-invoice me-1"></i>FAC: {{ $invObj->fiscal_number }}</span>
+                                                    @endif
+                                                </td>
                                                 <td>{{ \Carbon\Carbon::parse($invObj->created_at)->format('d/m/Y H:i') }}</td>
                                                 <td>{{ $invObj->customer_name }}</td>
                                                 <td class="text-right font-weight-bold text-success">${{ number_format($tUsd, 2) }}</td>
@@ -543,6 +561,14 @@
                                                 </td>
                                                 <td class="text-center">
                                                     <div class="d-flex justify-content-center gap-1">
+                                                        @if(!empty($invObj->fiscal_number) || !empty($invObj->is_fiscal))
+                                                            <a href="{{ route('pos.sales.generatePdfFormaLibre', ['sale' => $invObj->id, 'preview' => 1]) }}" target="_blank" class="btn btn-outline-success btn-xs" title="Vista Previa en Pantalla (con Fondo Membretado)">
+                                                                <i class="fas fa-eye"></i>
+                                                            </a>
+                                                            <a href="{{ route('pos.sales.generatePdfFormaLibre', $invObj->id) }}" target="_blank" class="btn btn-outline-primary btn-xs" title="Imprimir en Talonario Físico (sin fondo)">
+                                                                <i class="fas fa-print"></i>
+                                                            </a>
+                                                        @endif
                                                         <a href="{{ route('pos.sales.generatePdfInvoice', $invObj->id) }}" target="_blank" class="btn btn-outline-danger btn-xs" title="Ver Factura PDF">
                                                             <i class="fas fa-file-pdf"></i>
                                                         </a>

@@ -30,6 +30,9 @@ class Sale extends Model
         'primary_currency_code',
         'primary_exchange_rate',
         'invoice_number',
+        'document_type',
+        'fiscal_number',
+        'is_fiscal',
         'order_number',
         'seller_config_id',
         'applied_commission_percent',
@@ -78,6 +81,7 @@ class Sale extends Model
 
     protected $casts = [
         'is_foreign_sale' => 'boolean',
+        'is_fiscal' => 'boolean',
         'is_freight_broken_down' => 'boolean',
         'applied_commission_percent' => 'decimal:2',
         'final_commission_amount' => 'decimal:2',

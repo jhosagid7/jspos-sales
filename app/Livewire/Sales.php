@@ -79,6 +79,10 @@ class Sales extends Component
     public $order_id, $ordersObt, $order_note, $details = [];
     public $work_order_id = null;
     public $work_order_vehicle = null;
+    public $document_type = 'invoice'; // 'invoice' (Factura Fiscal) or 'delivery_note' (Nota de Entrega)
+    public $fiscal_number = ''; // N° de Factura manual de la forma libre
+    public $enableFormaLibre = false;
+    public $formaLibreTemplate = 'bucaros';
     public $pagination = 5, $status;
     public $confirmation_code = null;
     public $salesViewMode = 'grid'; // 'grid' or 'list'
@@ -1022,6 +1026,8 @@ class Sales extends Component
         $this->config = ConfigurationService::getConfig();
         $this->decimalPlaces = ConfigurationService::getDecimalPlaces();
         $this->isMulticurrency = $this->config ? $this->config->isMulticurrency() : true;
+        $this->enableFormaLibre = ConfigurationService::isFormaLibreEnabled();
+        $this->formaLibreTemplate = ConfigurationService::getFormaLibreTemplate();
         
         // Cache permissions to avoid N+1 in loops
         $this->canManageAdjustments = auth()->user()->can('sales.manage_adjustments');
@@ -1667,7 +1673,8 @@ class Sales extends Component
                 'decimalPlaces', 'canManageAdjustments', 'canShowExchangeRate', 
                 'canSwitchWarehouse', 'moduleMultiWarehouse', 'moduleCredits', 
                 'moduleAdvancedPayments', 'drivers', 'sellers', 'currencies',
-                'isSharedTerminal', 'availableOperators', 'isMulticurrency'
+                'isSharedTerminal', 'availableOperators', 'isMulticurrency',
+                'enableFormaLibre', 'formaLibreTemplate'
             );
             $this->clear();
             session()->forget('sale_customer');
@@ -1725,7 +1732,8 @@ class Sales extends Component
             'decimalPlaces', 'canManageAdjustments', 'canShowExchangeRate', 
             'canSwitchWarehouse', 'moduleMultiWarehouse', 'moduleCredits', 
             'moduleAdvancedPayments', 'drivers', 'sellers', 'currencies',
-            'isSharedTerminal', 'availableOperators', 'isMulticurrency'
+            'isSharedTerminal', 'availableOperators', 'isMulticurrency',
+            'enableFormaLibre', 'formaLibreTemplate'
         );
         $this->clear();
         session()->forget('sale_customer');
@@ -1797,7 +1805,8 @@ class Sales extends Component
             'decimalPlaces', 'canManageAdjustments', 'canShowExchangeRate', 
             'canSwitchWarehouse', 'moduleMultiWarehouse', 'moduleCredits', 
             'moduleAdvancedPayments', 'drivers', 'sellers', 'currencies',
-            'isSharedTerminal', 'availableOperators', 'isMulticurrency'
+            'isSharedTerminal', 'availableOperators', 'isMulticurrency',
+            'enableFormaLibre', 'formaLibreTemplate'
         );
         $this->clear();
         session()->forget('sale_customer');
@@ -3302,7 +3311,8 @@ class Sales extends Component
             'decimalPlaces', 'canManageAdjustments', 'canShowExchangeRate', 
             'canSwitchWarehouse', 'moduleMultiWarehouse', 'moduleCredits', 
             'moduleAdvancedPayments', 'drivers', 'sellers', 'currencies',
-            'isSharedTerminal', 'availableOperators', 'isMulticurrency'
+            'isSharedTerminal', 'availableOperators', 'isMulticurrency',
+            'enableFormaLibre', 'formaLibreTemplate'
         );
         $this->clear();
         session()->forget('sale_customer');
@@ -4211,6 +4221,24 @@ class Sales extends Component
             }
         }
 
+        // Validaciones de Documento Fiscal / Forma Libre
+        $docType = $this->document_type ?: 'invoice';
+        $fiscalNum = trim($this->fiscal_number ?? '');
+        $isFiscal = ($docType === 'invoice');
+
+        if ($isFiscal && !empty($fiscalNum)) {
+            $existsFiscal = Sale::where('fiscal_number', $fiscalNum)
+                ->when($this->editing_sale_id, function($q) {
+                    $q->where('id', '!=', $this->editing_sale_id);
+                })
+                ->exists();
+
+            if ($existsFiscal) {
+                $this->dispatch('noty', msg: "EL NÚMERO DE FACTURA FISCAL '{$fiscalNum}' YA FUE UTILIZADO EN OTRA VENTA");
+                return;
+            }
+        }
+
         DB::beginTransaction();
         try {
             // Determinar tipo de venta y notas
@@ -4447,6 +4475,24 @@ class Sales extends Component
                 $agreementToSave = ($appliedDiff > 0) ? 'BCV' : 'USD';
             }
 
+            // Validaciones de Documento Fiscal / Forma Libre
+            $docType = $this->document_type ?: 'invoice';
+            $fiscalNum = trim($this->fiscal_number ?? '');
+            $isFiscal = ($docType === 'invoice');
+
+            if ($isFiscal && !empty($fiscalNum)) {
+                // Verificar que no se repita el número fiscal en otra venta distinta
+                $existsFiscal = Sale::where('fiscal_number', $fiscalNum)
+                    ->when($this->editing_sale_id, function($q) {
+                        $q->where('id', '!=', $this->editing_sale_id);
+                    })
+                    ->exists();
+
+                if ($existsFiscal) {
+                    throw new \Exception("EL NÚMERO DE FACTURA FISCAL '{$fiscalNum}' YA FUE UTILIZADO EN OTRA VENTA.");
+                }
+            }
+
             $saleData = [
                 'seller_config_id' => $sellerConfigId,
                 'total' => $totalInInvoiceCurrency,
@@ -4463,6 +4509,9 @@ class Sales extends Component
                 'primary_currency_code' => $currencyCodeForInvoice,
                 'primary_exchange_rate' => $exchangeRateForInvoice,
                 'invoice_number' => $invoiceNumber,
+                'document_type' => $docType,
+                'fiscal_number' => $isFiscal && !empty($fiscalNum) ? $fiscalNum : null,
+                'is_fiscal' => $isFiscal,
                 'order_number' => $orderNumber,
                 'batch_name' => $batchName,
                 'batch_sequence' => $batchSequence,
@@ -5024,12 +5073,15 @@ class Sales extends Component
                 'decimalPlaces', 'canManageAdjustments', 'canShowExchangeRate', 
                 'canSwitchWarehouse', 'moduleMultiWarehouse', 'moduleCredits', 
                 'moduleAdvancedPayments', 'drivers', 'sellers', 'currencies',
-                'isSharedTerminal', 'availableOperators', 'isMulticurrency'
+                'isSharedTerminal', 'availableOperators', 'isMulticurrency',
+                'enableFormaLibre', 'formaLibreTemplate'
             );
             $this->clear();
             session()->forget('sale_customer');
             $this->work_order_id = null;
             $this->work_order_vehicle = null;
+            $this->document_type = 'invoice';
+            $this->fiscal_number = '';
             session()->forget('billing_work_order_id');
             
             // Limpiar sesiones de pagos y vueltos después de venta exitosa
@@ -5334,7 +5386,8 @@ class Sales extends Component
                 'decimalPlaces', 'canManageAdjustments', 'canShowExchangeRate', 
                 'canSwitchWarehouse', 'moduleMultiWarehouse', 'moduleCredits', 
                 'moduleAdvancedPayments', 'drivers', 'sellers', 'currencies',
-                'isSharedTerminal', 'availableOperators', 'isMulticurrency'
+                'isSharedTerminal', 'availableOperators', 'isMulticurrency',
+                'enableFormaLibre', 'formaLibreTemplate'
             );
             $this->clear();
             session()->forget('sale_customer');
@@ -5433,6 +5486,23 @@ class Sales extends Component
         } else {
             $this->dispatch('noty', msg: 'NO HAY VENTAS REGISTRADAS');
         }
+    }
+
+    #[On('printLastFormaLibre')]
+    function printLastFormaLibre()
+    {
+        $sale = Sale::latest()->first();
+        if ($sale != null) {
+            $url = route('pos.sales.generatePdfFormaLibre', ['sale' => $sale->id]);
+            $this->dispatch('open-pdf-tab', url: $url);
+        } else {
+            $this->dispatch('noty', msg: 'NO HAY VENTAS REGISTRADAS');
+        }
+    }
+
+    public function generatePdfFormaLibre(Sale $sale, \App\Services\WorkshopPrintService $printService)
+    {
+        return $printService->generateFormaLibrePdf($sale)->stream();
     }
 
     #[On('DestroyOrder')]

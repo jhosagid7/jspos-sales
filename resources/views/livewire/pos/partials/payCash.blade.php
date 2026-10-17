@@ -101,6 +101,64 @@
                                 </div>
                             </div>
 
+                            @if($enableFormaLibre)
+                            {{-- Tipo de Documento: Factura Fiscal (Forma Libre) vs Nota de Entrega --}}
+                            <div class="card mb-3 border-info">
+                                <div class="card-header bg-light d-flex justify-content-between align-items-center py-2">
+                                    <h6 class="mb-0 text-info font-weight-bold">
+                                        <i class="fa fa-file-invoice me-2"></i>Tipo de Comprobante
+                                    </h6>
+                                    @if($work_order_id)
+                                        <span class="badge badge-primary">Taller #{{ $work_order_id }}</span>
+                                    @endif
+                                </div>
+                                <div class="card-body py-2">
+                                    <div class="row g-2">
+                                        <div class="col-6">
+                                            <div class="form-check form-check-inline m-0 w-100 p-2 border rounded {{ $document_type === 'invoice' ? 'bg-light-info border-info font-weight-bold' : '' }}" style="cursor: pointer;" wire:click="$set('document_type', 'invoice')">
+                                                <input class="form-check-input ms-1" type="radio" name="docTypeOption" id="docTypeInvoice" value="invoice" wire:model.live="document_type">
+                                                <label class="form-check-label ms-1" for="docTypeInvoice" style="cursor: pointer;">
+                                                    <i class="fa fa-file-contract text-danger me-1"></i> Factura Fiscal (Forma Libre)
+                                                </label>
+                                            </div>
+                                        </div>
+                                        <div class="col-6">
+                                            <div class="form-check form-check-inline m-0 w-100 p-2 border rounded {{ $document_type === 'delivery_note' ? 'bg-light-success border-success font-weight-bold' : '' }}" style="cursor: pointer;" wire:click="$set('document_type', 'delivery_note')">
+                                                <input class="form-check-input ms-1" type="radio" name="docTypeOption" id="docTypeDelivery" value="delivery_note" wire:model.live="document_type">
+                                                <label class="form-check-label ms-1" for="docTypeDelivery" style="cursor: pointer;">
+                                                    <i class="fa fa-clipboard-check text-success me-1"></i> Nota de Entrega (Interna)
+                                                </label>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    @if($document_type === 'invoice')
+                                        <div class="mt-2 pt-2 border-top">
+                                            <label class="form-label small font-weight-bold text-dark mb-1">
+                                                <i class="fa fa-hashtag text-danger me-1"></i>N° de Factura del Talonario / Forma Libre:
+                                            </label>
+                                            <div class="input-group input-group-sm">
+                                                <span class="input-group-text bg-white font-weight-bold text-danger">FACTURA N°</span>
+                                                <input type="text" 
+                                                    class="form-control form-control-sm font-weight-bold" 
+                                                    placeholder="Ej: 001512" 
+                                                    wire:model="fiscal_number">
+                                            </div>
+                                            <small class="text-muted d-block mt-1" style="font-size: 0.75rem;">
+                                                <i class="fa fa-info-circle me-1"></i>Ingrese el número impreso en el papel membretado que colocará en la impresora.
+                                            </small>
+                                        </div>
+                                    @else
+                                        <div class="mt-2 pt-2 border-top">
+                                            <small class="text-success d-block" style="font-size: 0.75rem;">
+                                                <i class="fa fa-check-circle me-1"></i>Se asignará correlativo administrativo automático y se imprimirá en hoja estándar.
+                                            </small>
+                                        </div>
+                                    @endif
+                                </div>
+                            </div>
+                            @endif
+
                             {{-- Selector de Método de Pago --}}
                             <div class="card mb-3">
                                 <div class="card-header bg-light">
