@@ -451,7 +451,18 @@
                                     <tr class="text-center {{ $sale->deletion_requested_at ? 'table-warning' : '' }}">
                                         @if($columns['folio'])
                                         <td>
-                                            {{ $sale->invoice_number ?? $sale->id }}
+                                            <div class="d-flex flex-column align-items-center justify-content-center">
+                                                <span class="font-weight-bold">{{ $sale->invoice_number ?? $sale->id }}</span>
+                                                @if($sale->fiscal_number)
+                                                    <span class="badge badge-primary text-white mt-1" style="font-size: 0.72rem; padding: 2px 6px;" title="Factura Fiscal Forma Libre (Talonario #{{ $sale->fiscal_number }})">
+                                                        <i class="fas fa-file-invoice me-1"></i>FAC: {{ $sale->fiscal_number }}
+                                                    </span>
+                                                @elseif($sale->is_fiscal)
+                                                    <span class="badge badge-info text-white mt-1" style="font-size: 0.72rem; padding: 2px 6px;" title="Factura Fiscal">
+                                                        <i class="fas fa-file-invoice me-1"></i>FISCAL
+                                                    </span>
+                                                @endif
+                                            </div>
                                             @foreach ($sale->returns as $return)
                                                 @php $isManual = $return->details->count() === 0; @endphp
                                                 <a href="{{ route('pos.returns.generateCreditNotePdf', $return->id) }}" 
@@ -625,9 +636,23 @@
                                                 </a>
                                             @endif
 
+                                            @if($sale->fiscal_number || $sale->is_fiscal)
+                                                <a class="border-0 btn btn-outline-dark btn-xs link-offset-2 link-underline link-underline-opacity-0 {{ $sale->status == 'returned' ? 'disabled' : '' }}"
+                                                    href="{{ route('pos.sales.generatePdfFormaLibre', ['sale' => $sale->id, 'preview' => 1]) }}"
+                                                    target="_blank" title="Vista Previa en Pantalla (con Fondo Membretado)">
+                                                    <i class="text-success fas fa-eye"></i>
+                                                </a>
+
+                                                <a class="border-0 btn btn-outline-dark btn-xs link-offset-2 link-underline link-underline-opacity-0 {{ $sale->status == 'returned' ? 'disabled' : '' }}"
+                                                    href="{{ route('pos.sales.generatePdfFormaLibre', $sale->id) }}"
+                                                    target="_blank" title="Imprimir en Talonario Físico (Limpio para impresora, sin fondo)">
+                                                    <i class="text-primary fas fa-print"></i>
+                                                </a>
+                                            @endif
+
                                             <a class="border-0 btn btn-outline-dark btn-xs link-offset-2 link-underline link-underline-opacity-0 {{ $sale->status == 'returned' ? 'disabled' : '' }}"
                                                 href="{{ route('pos.sales.generatePdfInvoice', $sale->id) }}"
-                                                target="_blank" title="PDF"><i
+                                                target="_blank" title="PDF (Nota de Entrega / Factura)"><i
                                                     class="text-danger fas fa-file-pdf"></i>
                                             </a>
 

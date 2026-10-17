@@ -350,6 +350,8 @@ class SellerGroupedReport extends Component
         $invoices = $salesQuery->select([
             'sales.id',
             'sales.invoice_number',
+            'sales.fiscal_number',
+            'sales.is_fiscal',
             'sales.created_at',
             'sales.total',
             'sales.total_usd',

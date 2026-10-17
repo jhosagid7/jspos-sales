@@ -14,6 +14,8 @@ class Configuration extends Model
     protected $fillable = [
         'plan_type',
         'addon_modules',
+        'enable_forma_libre',
+        'forma_libre_template',
         'business_name',
         'seller_assignment_mode',
         'commission_calculation_mode',
@@ -125,6 +127,7 @@ class Configuration extends Model
     ];
 
     protected $casts = [
+        'enable_forma_libre' => 'boolean',
         'multicurrency_enabled' => 'boolean',
         'ai_settings' => 'array',
         'custom_labels' => 'array',
@@ -204,6 +207,11 @@ class Configuration extends Model
         // 1. Verificar si hay un override local que force habilitar o deshabilitar
         if (!empty($this->local_overrides) && isset($this->local_overrides[$addon])) {
             return (bool) $this->local_overrides[$addon];
+        }
+
+        // 1.05 Verificar si está en el array addon_modules
+        if (is_array($this->addon_modules) && in_array($addon, $this->addon_modules)) {
+            return true;
         }
 
         // 1.1 Verificar si existe como columna directa en la tabla configurations

@@ -77,6 +77,12 @@ class Sales extends Component
     public $order_selected_id, $customer_name, $amount;
     public $order_notes = null;
     public $order_id, $ordersObt, $order_note, $details = [];
+    public $work_order_id = null;
+    public $work_order_vehicle = null;
+    public $document_type = 'invoice'; // 'invoice' (Factura Fiscal) or 'delivery_note' (Nota de Entrega)
+    public $fiscal_number = ''; // N° de Factura manual de la forma libre
+    public $enableFormaLibre = false;
+    public $formaLibreTemplate = 'bucaros';
     public $pagination = 5, $status;
     public $confirmation_code = null;
     public $salesViewMode = 'grid'; // 'grid' or 'list'
@@ -1020,6 +1026,8 @@ class Sales extends Component
         $this->config = ConfigurationService::getConfig();
         $this->decimalPlaces = ConfigurationService::getDecimalPlaces();
         $this->isMulticurrency = $this->config ? $this->config->isMulticurrency() : true;
+        $this->enableFormaLibre = ConfigurationService::isFormaLibreEnabled();
+        $this->formaLibreTemplate = ConfigurationService::getFormaLibreTemplate();
         
         // Cache permissions to avoid N+1 in loops
         $this->canManageAdjustments = auth()->user()->can('sales.manage_adjustments');
@@ -1183,6 +1191,13 @@ class Sales extends Component
             }
             $this->loadSaleToEdit(session('editing_sale_id'));
             session()->forget(['editing_sale_id', 'edit_authorized_by', 'edit_reason']);
+        }
+
+        // Verificar si se está facturando una orden de trabajo de taller
+        $incomingWorkOrderId = request()->query('work_order_id') ?: session('billing_work_order_id');
+        if ($incomingWorkOrderId) {
+            session()->forget('billing_work_order_id');
+            $this->loadWorkOrderToCart((int)$incomingWorkOrderId);
         }
     }
     
@@ -1658,7 +1673,8 @@ class Sales extends Component
                 'decimalPlaces', 'canManageAdjustments', 'canShowExchangeRate', 
                 'canSwitchWarehouse', 'moduleMultiWarehouse', 'moduleCredits', 
                 'moduleAdvancedPayments', 'drivers', 'sellers', 'currencies',
-                'isSharedTerminal', 'availableOperators', 'isMulticurrency'
+                'isSharedTerminal', 'availableOperators', 'isMulticurrency',
+                'enableFormaLibre', 'formaLibreTemplate'
             );
             $this->clear();
             session()->forget('sale_customer');
@@ -1716,7 +1732,8 @@ class Sales extends Component
             'decimalPlaces', 'canManageAdjustments', 'canShowExchangeRate', 
             'canSwitchWarehouse', 'moduleMultiWarehouse', 'moduleCredits', 
             'moduleAdvancedPayments', 'drivers', 'sellers', 'currencies',
-            'isSharedTerminal', 'availableOperators', 'isMulticurrency'
+            'isSharedTerminal', 'availableOperators', 'isMulticurrency',
+            'enableFormaLibre', 'formaLibreTemplate'
         );
         $this->clear();
         session()->forget('sale_customer');
@@ -1778,6 +1795,100 @@ class Sales extends Component
         $this->recalculateCartWithSellerConfig();
 
         $this->dispatch('close-process-order');
+    }
+
+    public function loadWorkOrderToCart(int $workOrderId)
+    {
+        $this->resetExcept(
+            'config', 'banks', 'bank', 'warehouses', 'warehouse_id', 'trends', 
+            'invoiceCurrency_id', 'invoiceExchangeRate', 'displayCurrency',
+            'decimalPlaces', 'canManageAdjustments', 'canShowExchangeRate', 
+            'canSwitchWarehouse', 'moduleMultiWarehouse', 'moduleCredits', 
+            'moduleAdvancedPayments', 'drivers', 'sellers', 'currencies',
+            'isSharedTerminal', 'availableOperators', 'isMulticurrency',
+            'enableFormaLibre', 'formaLibreTemplate'
+        );
+        $this->clear();
+        session()->forget('sale_customer');
+
+        $workOrder = \App\Models\WorkOrder::with(['customer', 'vehicle', 'items.product'])->find($workOrderId);
+        if (!$workOrder) {
+            $this->dispatch('noty', msg: 'ORDEN DE TRABAJO NO ENCONTRADA', type: 'error');
+            return;
+        }
+
+        if ($workOrder->status === 'invoiced' || $workOrder->sale_id) {
+            $this->dispatch('noty', msg: "LA ORDEN #{$workOrder->order_number} YA FUE FACTURADA", type: 'warning');
+            return;
+        }
+
+        // 1. Cargar el cliente y sus condiciones comerciales
+        $customer = $workOrder->customer;
+        $this->setCustomer($customer);
+
+        // 2. Vincular IDs de taller
+        $this->work_order_id = $workOrder->id;
+        $this->work_order_vehicle = $workOrder->vehicle;
+
+        $vehicleInfo = $workOrder->vehicle ? "[{$workOrder->vehicle->plate}] {$workOrder->vehicle->brand} {$workOrder->vehicle->model}" : "S/D";
+        $mileageInfo = $workOrder->entry_mileage ? number_format($workOrder->entry_mileage) . " km" : "S/D";
+        $this->order_notes = "Orden de Trabajo #{$workOrder->order_number} | Vehículo: {$vehicleInfo} | Odómetro: {$mileageInfo}";
+
+        if (empty($this->warehouse_id)) {
+            $defaultWh = \App\Models\Warehouse::where('is_active', 1)->first();
+            $this->warehouse_id = $defaultWh ? $defaultWh->id : 1;
+        }
+
+        // 3. Crear o reutilizar producto comodín para servicios/mano de obra
+        $serviceProduct = \App\Models\Product::where('sku', 'SRV-LABOR')->first();
+        if (!$serviceProduct) {
+            $category = \App\Models\Category::firstOrCreate(['name' => 'SERVICIOS TALLER']);
+            $supplier = \App\Models\Supplier::firstOrCreate(['name' => 'TALLER AUTOMOTRIZ INTERNO']);
+            $serviceProduct = \App\Models\Product::create([
+                'sku' => 'SRV-LABOR',
+                'name' => 'SERVICIO MANO DE OBRA TALLER',
+                'type' => 'service',
+                'status' => 'available',
+                'cost' => 0.00,
+                'price' => 0.00,
+                'manage_stock' => 0,
+                'stock_qty' => 0,
+                'low_stock' => 0,
+                'category_id' => $category->id,
+                'supplier_id' => $supplier->id,
+                'show_in_sales' => false,
+            ]);
+        }
+
+        // 4. Cargar ítems aprobados al carrito
+        $this->bypassReservation = true;
+
+        foreach ($workOrder->items()->where('is_approved', true)->get() as $item) {
+            if ($item->type === 'part' && $item->product) {
+                // Producto físico (Repuesto)
+                $this->AddProduct(
+                    $item->product, 
+                    (float)$item->quantity, 
+                    $this->warehouse_id, 
+                    (float)$item->unit_price, 
+                    $item->description
+                );
+            } else {
+                // Servicio / Mano de Obra (No maneja stock)
+                $this->AddProduct(
+                    $serviceProduct, 
+                    (float)$item->quantity, 
+                    $this->warehouse_id, 
+                    (float)$item->unit_price, 
+                    $item->description
+                );
+            }
+        }
+
+        $this->bypassReservation = false;
+
+        // 5. Iniciar directamente el cobro en el modal multimoneda del POS
+        $this->initPayment(1);
     }
 
     public function loadSaleToEdit($saleId)
@@ -3200,7 +3311,8 @@ class Sales extends Component
             'decimalPlaces', 'canManageAdjustments', 'canShowExchangeRate', 
             'canSwitchWarehouse', 'moduleMultiWarehouse', 'moduleCredits', 
             'moduleAdvancedPayments', 'drivers', 'sellers', 'currencies',
-            'isSharedTerminal', 'availableOperators', 'isMulticurrency'
+            'isSharedTerminal', 'availableOperators', 'isMulticurrency',
+            'enableFormaLibre', 'formaLibreTemplate'
         );
         $this->clear();
         session()->forget('sale_customer');
@@ -4109,6 +4221,24 @@ class Sales extends Component
             }
         }
 
+        // Validaciones de Documento Fiscal / Forma Libre
+        $docType = $this->document_type ?: 'invoice';
+        $fiscalNum = trim($this->fiscal_number ?? '');
+        $isFiscal = ($docType === 'invoice');
+
+        if ($isFiscal && !empty($fiscalNum)) {
+            $existsFiscal = Sale::where('fiscal_number', $fiscalNum)
+                ->when($this->editing_sale_id, function($q) {
+                    $q->where('id', '!=', $this->editing_sale_id);
+                })
+                ->exists();
+
+            if ($existsFiscal) {
+                $this->dispatch('noty', msg: "EL NÚMERO DE FACTURA FISCAL '{$fiscalNum}' YA FUE UTILIZADO EN OTRA VENTA");
+                return;
+            }
+        }
+
         DB::beginTransaction();
         try {
             // Determinar tipo de venta y notas
@@ -4345,6 +4475,24 @@ class Sales extends Component
                 $agreementToSave = ($appliedDiff > 0) ? 'BCV' : 'USD';
             }
 
+            // Validaciones de Documento Fiscal / Forma Libre
+            $docType = $this->document_type ?: 'invoice';
+            $fiscalNum = trim($this->fiscal_number ?? '');
+            $isFiscal = ($docType === 'invoice');
+
+            if ($isFiscal && !empty($fiscalNum)) {
+                // Verificar que no se repita el número fiscal en otra venta distinta
+                $existsFiscal = Sale::where('fiscal_number', $fiscalNum)
+                    ->when($this->editing_sale_id, function($q) {
+                        $q->where('id', '!=', $this->editing_sale_id);
+                    })
+                    ->exists();
+
+                if ($existsFiscal) {
+                    throw new \Exception("EL NÚMERO DE FACTURA FISCAL '{$fiscalNum}' YA FUE UTILIZADO EN OTRA VENTA.");
+                }
+            }
+
             $saleData = [
                 'seller_config_id' => $sellerConfigId,
                 'total' => $totalInInvoiceCurrency,
@@ -4361,6 +4509,9 @@ class Sales extends Component
                 'primary_currency_code' => $currencyCodeForInvoice,
                 'primary_exchange_rate' => $exchangeRateForInvoice,
                 'invoice_number' => $invoiceNumber,
+                'document_type' => $docType,
+                'fiscal_number' => $isFiscal && !empty($fiscalNum) ? $fiscalNum : null,
+                'is_fiscal' => $isFiscal,
                 'order_number' => $orderNumber,
                 'batch_name' => $batchName,
                 'batch_sequence' => $batchSequence,
@@ -4386,6 +4537,8 @@ class Sales extends Component
                 'driver_id' => $this->driver_id,
                 'seller_id' => $this->seller_id ?: ($this->customer['seller_id'] ?? null),
                 'payment_agreement' => $agreementToSave,
+                'work_order_id' => $this->work_order_id ?: null,
+                'vehicle_id' => $this->work_order_vehicle ? $this->work_order_vehicle->id : null,
             ];
 
             if ($this->editing_sale_id && $sale) {
@@ -4831,6 +4984,19 @@ class Sales extends Component
                 }
             }
 
+            // Actualizar Orden de Trabajo de Taller (si la venta proviene de una OT)
+            if ($this->work_order_id) {
+                $targetWorkOrder = \App\Models\WorkOrder::find($this->work_order_id);
+                if ($targetWorkOrder) {
+                    $targetWorkOrder->update([
+                        'sale_id' => $sale->id,
+                        'status' => 'invoiced',
+                        'delivered_at' => now(),
+                    ]);
+                    Log::info("WorkOrder {$this->work_order_id} marked as invoiced with Sale {$sale->id}.");
+                }
+            }
+
             // Vincular la autorización de crédito con esta venta (si aplica)
             if ($this->pendingCreditAuthId) {
                 $auth = \App\Models\CreditAuthorization::find($this->pendingCreditAuthId);
@@ -4907,10 +5073,16 @@ class Sales extends Component
                 'decimalPlaces', 'canManageAdjustments', 'canShowExchangeRate', 
                 'canSwitchWarehouse', 'moduleMultiWarehouse', 'moduleCredits', 
                 'moduleAdvancedPayments', 'drivers', 'sellers', 'currencies',
-                'isSharedTerminal', 'availableOperators', 'isMulticurrency'
+                'isSharedTerminal', 'availableOperators', 'isMulticurrency',
+                'enableFormaLibre', 'formaLibreTemplate'
             );
             $this->clear();
             session()->forget('sale_customer');
+            $this->work_order_id = null;
+            $this->work_order_vehicle = null;
+            $this->document_type = 'invoice';
+            $this->fiscal_number = '';
+            session()->forget('billing_work_order_id');
             
             // Limpiar sesiones de pagos y vueltos después de venta exitosa
             session()->forget('payments');
@@ -5214,7 +5386,8 @@ class Sales extends Component
                 'decimalPlaces', 'canManageAdjustments', 'canShowExchangeRate', 
                 'canSwitchWarehouse', 'moduleMultiWarehouse', 'moduleCredits', 
                 'moduleAdvancedPayments', 'drivers', 'sellers', 'currencies',
-                'isSharedTerminal', 'availableOperators', 'isMulticurrency'
+                'isSharedTerminal', 'availableOperators', 'isMulticurrency',
+                'enableFormaLibre', 'formaLibreTemplate'
             );
             $this->clear();
             session()->forget('sale_customer');
@@ -5313,6 +5486,23 @@ class Sales extends Component
         } else {
             $this->dispatch('noty', msg: 'NO HAY VENTAS REGISTRADAS');
         }
+    }
+
+    #[On('printLastFormaLibre')]
+    function printLastFormaLibre()
+    {
+        $sale = Sale::latest()->first();
+        if ($sale != null) {
+            $url = route('pos.sales.generatePdfFormaLibre', ['sale' => $sale->id]);
+            $this->dispatch('open-pdf-tab', url: $url);
+        } else {
+            $this->dispatch('noty', msg: 'NO HAY VENTAS REGISTRADAS');
+        }
+    }
+
+    public function generatePdfFormaLibre(Sale $sale, \App\Services\WorkshopPrintService $printService)
+    {
+        return $printService->generateFormaLibrePdf($sale)->stream();
     }
 
     #[On('DestroyOrder')]

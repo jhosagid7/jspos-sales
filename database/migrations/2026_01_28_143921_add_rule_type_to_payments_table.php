@@ -11,9 +11,11 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::table('payments', function (Blueprint $table) {
-            $table->string('rule_type')->nullable()->after('payment_days')->comment('early_payment (Discount) or overdue (Surcharge)');
-        });
+        if (Schema::hasTable('payments') && !Schema::hasColumn('payments', 'rule_type')) {
+            Schema::table('payments', function (Blueprint $table) {
+                $table->string('rule_type')->nullable()->after('payment_days')->comment('early_payment (Discount) or overdue (Surcharge)');
+            });
+        }
     }
 
     /**

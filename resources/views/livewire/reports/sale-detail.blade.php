@@ -59,7 +59,18 @@
                         <div class="row mb-4">
                             <div class="col-sm-6">
                                 <div><b>Cliente:</b> {{ $salesObt->customer->name ?? 'N/A' }}</div>
-                                <div><b>Folio:</b> {{ $salesObt->invoice_number ?? 'N/A' }}</div>
+                                <div>
+                                    <b>Folio:</b> {{ $salesObt->invoice_number ?? 'N/A' }}
+                                    @if($salesObt->fiscal_number)
+                                        <span class="badge bg-primary text-white ms-2" title="Factura Fiscal Forma Libre (Talonario #{{ $salesObt->fiscal_number }})">
+                                            <i class="fas fa-file-invoice me-1"></i>FAC: {{ $salesObt->fiscal_number }}
+                                        </span>
+                                    @elseif($salesObt->is_fiscal)
+                                        <span class="badge bg-info text-white ms-2" title="Factura Fiscal">
+                                            <i class="fas fa-file-invoice me-1"></i>FISCAL
+                                        </span>
+                                    @endif
+                                </div>
                                 <div><b>Fecha:</b> {{ $salesObt->created_at->format('d/m/Y h:i A') }}</div>
                             </div>
                             <div class="col-sm-6 text-end">
@@ -838,6 +849,20 @@
                         {{-- Row 2: Facturas Cliente --}}
                         <div class="d-flex flex-wrap gap-2 align-items-center mb-1">
                             <small class="text-muted fw-bold me-1">FACTURAS CLIENTE:</small>
+
+                            @if(optional($salesObt)->fiscal_number || optional($salesObt)->is_fiscal)
+                                <a class="btn btn-sm btn-outline-success {{ $sale_status == 'returned' ? 'disabled' : '' }}"
+                                   href="{{ route('pos.sales.generatePdfFormaLibre', ['sale' => $sale_id, 'preview' => 1]) }}" target="_blank"
+                                   title="Visualizar en pantalla con la hoja membretada de fondo">
+                                    <i class="fas fa-eye"></i> Ver con Fondo
+                                </a>
+
+                                <a class="btn btn-sm btn-outline-primary {{ $sale_status == 'returned' ? 'disabled' : '' }}"
+                                   href="{{ route('pos.sales.generatePdfFormaLibre', $sale_id) }}" target="_blank"
+                                   title="Imprimir en la impresora sobre el talonario físico pre-impreso (sin fondo)">
+                                    <i class="fas fa-print"></i> Imprimir en Talonario
+                                </a>
+                            @endif
 
                             <a class="btn btn-sm btn-outline-info"
                                href="{{ route('pos.sales.generatePdfInvoiceOriginal', $sale_id) }}" target="_blank">

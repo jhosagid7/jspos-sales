@@ -9,6 +9,7 @@ use App\Models\SalePaymentDetail;
 use App\Models\CollectionSheet;
 use App\Models\Configuration;
 use App\Services\WhatsappService;
+use App\Services\IncomeReportService;
 use Carbon\Carbon;
 
 class SendDailyClosureNotification extends Command
@@ -27,16 +28,40 @@ class SendDailyClosureNotification extends Command
             return 1;
         }
 
-        $categories = [
-            'DOLARES' => 'DOLARES',
-            'PESOS' => 'PESOS',
-            'EFECTIVO BS' => 'EFECTIVO BS',
-            'BANCO DE VENEZUELA' => 'BANCO DE VENEZUELA',
-            'BANCO PROVINCIAL' => 'BANCO PROVINCIAL',
-            'BANCO MERCANTIL' => 'BANCO MERCANTIL',
-            'ZELLE' => 'ZELLE',
-            'USDT' => 'USDT'
-        ];
+        // Fetch sales for the day
+        $sales = Sale::whereBetween('created_at', [
+                $dateParsed->copy()->startOfDay(), 
+                $dateParsed->copy()->endOfDay()
+            ])
+            ->whereNotIn('status', ['voided', 'cancelled', 'anulated', 'returned'])
+            ->with(['paymentDetails', 'changeDetails'])
+            ->get();
+
+        // Fetch sheet & payments for the day
+        $sheet = CollectionSheet::whereDate('opened_at', $date)->first();
+        $payments = collect();
+        if ($sheet) {
+            $payments = Payment::where('collection_sheet_id', $sheet->id)
+                ->where('status', 'approved')
+                ->get();
+        }
+
+        // Collect extra bank names from transactions
+        $extraBankNames = [];
+        foreach ($sales as $sale) {
+            foreach ($sale->paymentDetails as $d) {
+                if ($d->bank_name) {
+                    $extraBankNames[] = $d->bank_name;
+                }
+            }
+        }
+        foreach ($payments as $p) {
+            if ($p->bank) {
+                $extraBankNames[] = $p->bank;
+            }
+        }
+
+        $categories = IncomeReportService::getCategories($extraBankNames);
 
         // Initialize day data
         $dayData = [];
@@ -48,44 +73,17 @@ class SendDailyClosureNotification extends Command
         }
 
         // 1. CONTADO
-        $sales = Sale::whereBetween('created_at', [
-                $dateParsed->copy()->startOfDay(), 
-                $dateParsed->copy()->endOfDay()
-            ])
-            ->whereNotIn('status', ['voided', 'cancelled', 'anulated', 'returned'])
-            ->get();
-
         foreach ($sales as $sale) {
             $details = $sale->paymentDetails;
             if ($details->count() > 0) {
                 foreach ($details as $d) {
                     $rate = $d->exchange_rate > 0 ? $d->exchange_rate : 1;
                     $amtUSD = $d->amount / $rate;
-                    $method = strtolower($d->payment_method);
-                    $curr = strtoupper($d->currency_code);
-                    $bank = strtoupper($d->bank_name ?? '');
-
-                    if ($method === 'cash') {
-                        if ($curr === 'USD') {
-                            $dayData['DOLARES']['contado'] += $amtUSD;
-                        } elseif ($curr === 'COP') {
-                            $dayData['PESOS']['contado'] += $amtUSD;
-                        } elseif ($curr === 'VES' || $curr === 'VED') {
-                            $dayData['EFECTIVO BS']['contado'] += $amtUSD;
-                        }
-                    } elseif ($method === 'usdt' || str_contains($bank, 'USDT') || str_contains($bank, 'BINANCE') || str_contains($bank, 'CRIPTO')) {
-                        $dayData['USDT']['contado'] += $amtUSD;
-                    } elseif ($method === 'zelle' || str_contains($bank, 'ZELLE')) {
-                        $dayData['ZELLE']['contado'] += $amtUSD;
-                    } elseif ($method === 'bank' || $method === 'deposit') {
-                        if (str_contains($bank, 'PROVINCIAL')) {
-                            $dayData['BANCO PROVINCIAL']['contado'] += $amtUSD;
-                        } elseif (str_contains($bank, 'MERCANTIL')) {
-                            $dayData['BANCO MERCANTIL']['contado'] += $amtUSD;
-                        } elseif (str_contains($bank, 'VENEZUELA') || str_contains($bank, 'BDV')) {
-                            $dayData['BANCO DE VENEZUELA']['contado'] += $amtUSD;
-                        }
+                    $cat = IncomeReportService::resolveCategory($d->payment_method, $d->currency_code, $d->bank_name, $categories);
+                    if (!isset($dayData[$cat])) {
+                        $dayData[$cat] = ['contado' => 0.0, 'cobranza' => 0.0];
                     }
+                    $dayData[$cat]['contado'] += $amtUSD;
                 }
 
                 // Subtract change
@@ -93,83 +91,34 @@ class SendDailyClosureNotification extends Command
                 foreach ($changes as $c) {
                     $rate = $c->exchange_rate > 0 ? $c->exchange_rate : 1;
                     $amtUSD = $c->amount / $rate;
-                    $curr = strtoupper($c->currency_code);
-                    if ($curr === 'USD') {
-                        $dayData['DOLARES']['contado'] -= $amtUSD;
-                    } elseif ($curr === 'COP') {
-                        $dayData['PESOS']['contado'] -= $amtUSD;
-                    } elseif ($curr === 'VES' || $curr === 'VED') {
-                        $dayData['EFECTIVO BS']['contado'] -= $amtUSD;
+                    $cat = IncomeReportService::resolveCategory('cash', $c->currency_code, null, $categories);
+                    if (!isset($dayData[$cat])) {
+                        $dayData[$cat] = ['contado' => 0.0, 'cobranza' => 0.0];
                     }
+                    $dayData[$cat]['contado'] -= $amtUSD;
                 }
             } else {
                 if ($sale->type !== 'credit') {
                     $rate = $sale->primary_exchange_rate > 0 ? $sale->primary_exchange_rate : 1;
                     $netAmt = ($sale->cash - $sale->change) / $rate;
-                    $curr = strtoupper($sale->primary_currency_code ?? 'USD');
-
-                    if ($sale->type === 'cash') {
-                        if ($curr === 'USD') {
-                            $dayData['DOLARES']['contado'] += $netAmt;
-                        } elseif ($curr === 'COP') {
-                            $dayData['PESOS']['contado'] += $netAmt;
-                        } elseif ($curr === 'VES' || $curr === 'VED') {
-                            $dayData['EFECTIVO BS']['contado'] += $netAmt;
-                        }
-                    } elseif ($sale->type === 'usdt' || str_contains(strtoupper($sale->bank_name ?? ''), 'USDT') || str_contains(strtoupper($sale->bank_name ?? ''), 'BINANCE') || str_contains(strtoupper($sale->bank_name ?? ''), 'CRIPTO')) {
-                        $dayData['USDT']['contado'] += $netAmt;
-                    } elseif ($sale->type === 'zelle') {
-                        $dayData['ZELLE']['contado'] += $netAmt;
-                    } elseif ($sale->type === 'bank') {
-                        $bank = strtoupper($sale->bank_name ?? '');
-                        if (str_contains($bank, 'PROVINCIAL')) {
-                            $dayData['BANCO PROVINCIAL']['contado'] += $netAmt;
-                        } elseif (str_contains($bank, 'MERCANTIL')) {
-                            $dayData['BANCO MERCANTIL']['contado'] += $netAmt;
-                        } elseif (str_contains($bank, 'VENEZUELA') || str_contains($bank, 'BDV')) {
-                            $dayData['BANCO DE VENEZUELA']['contado'] += $netAmt;
-                        }
+                    $cat = IncomeReportService::resolveCategory($sale->type, $sale->primary_currency_code, $sale->bank_name, $categories);
+                    if (!isset($dayData[$cat])) {
+                        $dayData[$cat] = ['contado' => 0.0, 'cobranza' => 0.0];
                     }
+                    $dayData[$cat]['contado'] += $netAmt;
                 }
             }
         }
 
         // 2. COBRANZA
-        $sheet = CollectionSheet::whereDate('opened_at', $date)->first();
-        if ($sheet) {
-            $payments = Payment::where('collection_sheet_id', $sheet->id)
-                ->where('status', 'approved')
-                ->get();
-
-            foreach ($payments as $p) {
-                $rate = $p->exchange_rate > 0 ? $p->exchange_rate : 1;
-                $amtUSD = $p->amount / $rate;
-                $payWay = strtolower($p->pay_way);
-                $curr = strtoupper($p->currency);
-                $bank = strtoupper($p->bank ?? '');
-
-                if ($payWay === 'cash') {
-                    if ($curr === 'USD') {
-                        $dayData['DOLARES']['cobranza'] += $amtUSD;
-                    } elseif ($curr === 'COP') {
-                        $dayData['PESOS']['cobranza'] += $amtUSD;
-                    } elseif ($curr === 'VES' || $curr === 'VED') {
-                        $dayData['EFECTIVO BS']['cobranza'] += $amtUSD;
-                    }
-                } elseif ($payWay === 'usdt' || str_contains($bank, 'USDT') || str_contains($bank, 'BINANCE') || str_contains($bank, 'CRIPTO')) {
-                    $dayData['USDT']['cobranza'] += $amtUSD;
-                } elseif ($payWay === 'zelle' || str_contains($bank, 'ZELLE')) {
-                    $dayData['ZELLE']['cobranza'] += $amtUSD;
-                } elseif ($payWay === 'bank' || $payWay === 'deposit') {
-                    if (str_contains($bank, 'PROVINCIAL')) {
-                        $dayData['BANCO PROVINCIAL']['cobranza'] += $amtUSD;
-                    } elseif (str_contains($bank, 'MERCANTIL')) {
-                        $dayData['BANCO MERCANTIL']['cobranza'] += $amtUSD;
-                    } elseif (str_contains($bank, 'VENEZUELA') || str_contains($bank, 'BDV')) {
-                        $dayData['BANCO DE VENEZUELA']['cobranza'] += $amtUSD;
-                    }
-                }
+        foreach ($payments as $p) {
+            $rate = $p->exchange_rate > 0 ? $p->exchange_rate : 1;
+            $amtUSD = $p->amount / $rate;
+            $cat = IncomeReportService::resolveCategory($p->pay_way, $p->currency, $p->bank, $categories);
+            if (!isset($dayData[$cat])) {
+                $dayData[$cat] = ['contado' => 0.0, 'cobranza' => 0.0];
             }
+            $dayData[$cat]['cobranza'] += $amtUSD;
         }
 
         // 3. VENTAS A CREDITO

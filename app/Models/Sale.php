@@ -18,6 +18,8 @@ class Sale extends Model
         'items',
         'status',
         'customer_id',
+        'work_order_id',
+        'vehicle_id',
         'seller_id',
 
         'user_id',
@@ -28,6 +30,9 @@ class Sale extends Model
         'primary_currency_code',
         'primary_exchange_rate',
         'invoice_number',
+        'document_type',
+        'fiscal_number',
+        'is_fiscal',
         'order_number',
         'seller_config_id',
         'applied_commission_percent',
@@ -76,6 +81,7 @@ class Sale extends Model
 
     protected $casts = [
         'is_foreign_sale' => 'boolean',
+        'is_fiscal' => 'boolean',
         'is_freight_broken_down' => 'boolean',
         'applied_commission_percent' => 'decimal:2',
         'final_commission_amount' => 'decimal:2',
@@ -141,6 +147,16 @@ class Sale extends Model
     public function debitNotes()
     {
         return $this->hasMany(DebitNote::class);
+    }
+
+    public function workOrder()
+    {
+        return $this->belongsTo(WorkOrder::class, 'work_order_id');
+    }
+
+    public function vehicle()
+    {
+        return $this->belongsTo(Vehicle::class, 'vehicle_id');
     }
 
     //scopes

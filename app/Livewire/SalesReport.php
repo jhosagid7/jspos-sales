@@ -158,13 +158,17 @@ class SalesReport extends Component
 
                 $q->where(function($sub) use ($searchValue, $cleanNumber) {
                     $sub->where('id', 'like', "%{$searchValue}%")
-                      ->orWhere('invoice_number', 'like', "%{$searchValue}%");
+                      ->orWhere('invoice_number', 'like', "%{$searchValue}%")
+                      ->orWhere('fiscal_number', 'like', "%{$searchValue}%");
 
                     if ($cleanNumber !== null) {
-                        $padded = str_pad($cleanNumber, 8, '0', STR_PAD_LEFT);
+                        $padded8 = str_pad($cleanNumber, 8, '0', STR_PAD_LEFT);
+                        $padded4 = str_pad($cleanNumber, 4, '0', STR_PAD_LEFT);
                         $sub->orWhere('id', $cleanNumber)
                             ->orWhere('invoice_number', 'like', "%{$cleanNumber}%")
-                            ->orWhere('invoice_number', 'like', "%{$padded}%");
+                            ->orWhere('invoice_number', 'like', "%{$padded8}%")
+                            ->orWhere('fiscal_number', 'like', "%{$cleanNumber}%")
+                            ->orWhere('fiscal_number', 'like', "%{$padded4}%");
                     }
                 });
             })

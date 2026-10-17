@@ -163,6 +163,16 @@ class User extends Authenticatable
         return $this->hasMany(DriverLocation::class, 'driver_id');
     }
 
+    public function workOrders()
+    {
+        return $this->hasMany(WorkOrder::class, 'mechanic_id');
+    }
+
+    public function workOrderItems()
+    {
+        return $this->hasMany(WorkOrderItem::class, 'mechanic_id');
+    }
+
     public function customers()
     {
         return $this->hasMany(Customer::class, 'seller_id');
@@ -236,6 +246,39 @@ class User extends Authenticatable
     public function scopeDrivers($query)
     {
         return $query->permission('distribution.map'); // Or the specific driver permission
+    }
+
+    /**
+     * Scope to get all users having strictly the Mecanico role.
+     */
+    public function scopeMechanics($query)
+    {
+        return $query->whereHas('roles', function ($rq) {
+            $rq->whereIn('name', ['Mecanico', 'Mecánico', 'mecanico']);
+        })->distinct();
+    }
+
+    /**
+     * Scope to search users by multi-word tokens in any order.
+     */
+    public function scopeSearch($query, $term)
+    {
+        if (blank($term)) {
+            return $query;
+        }
+
+        $term = trim((string)$term);
+        $tokens = array_filter(explode(' ', $term));
+
+        return $query->where(function ($q) use ($tokens) {
+            foreach ($tokens as $token) {
+                $q->where(function ($subQuery) use ($token) {
+                    $subQuery->where('name', 'like', "%{$token}%")
+                             ->orWhere('email', 'like', "%{$token}%")
+                             ->orWhere('phone', 'like', "%{$token}%");
+                });
+            }
+        });
     }
 
     public function isSuperAdmin(): bool

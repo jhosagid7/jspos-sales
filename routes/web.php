@@ -139,6 +139,11 @@ Route::middleware('auth')->group(function () {
     Route::get('soplados/formulas', \App\Livewire\Soplados\Formulas::class)->name('soplados.formulas')->middleware(['can:production.index']);
     Route::get('soplados/inventories', \App\Livewire\Soplados\SopladosInventoriesList::class)->name('soplados.inventories')->middleware(['can:production.index']);
     Route::get('soplados/expected-production', \App\Livewire\Soplados\ExpectedProductionList::class)->name('soplados.expected-production')->middleware(['can:production.index']);
+    // Automotive Workshop Routes
+    Route::get('workshop/work-orders', \App\Livewire\Workshop\WorkOrders::class)->name('workshop.work-orders');
+    Route::get('workshop/work-orders/{order}/pdf', [\App\Http\Controllers\WorkshopController::class, 'pdf'])->name('workshop.work-orders.pdf');
+    Route::get('workshop/commissions', \App\Livewire\Workshop\MechanicCommissions::class)->name('workshop.commissions');
+    Route::get('workshop/vehicles/history', \App\Livewire\Workshop\VehicleHistory::class)->name('workshop.vehicles.history');
 
     Route::get('descargos', \App\Livewire\Descargos\DescargosList::class)->name('descargos')->middleware('can:adjustments.create');
     Route::get('descargos/create', \App\Livewire\Descargos\CreateDescargo::class)->name('descargos.create')->middleware('can:adjustments.create');
@@ -296,6 +301,7 @@ Route::middleware('auth')->group(function () {
     Route::get('sales/{sale}/original', [Sales::class, 'generatePdfInvoiceOriginal'])->name('pos.sales.generatePdfInvoiceOriginal')->middleware('can:sales.pdf');
     Route::get('sales/{sale}/internal', [Sales::class, 'generatePdfInternalInvoice'])->name('pos.sales.generatePdfInternal')->middleware('can:sales.pdf');
     Route::get('sales/{sale}/internal-original', [Sales::class, 'generatePdfInternalInvoiceOriginal'])->name('pos.sales.generatePdfInternalOriginal')->middleware('can:sales.pdf');
+    Route::get('sales/{sale}/forma-libre', [Sales::class, 'generatePdfFormaLibre'])->name('pos.sales.generatePdfFormaLibre')->middleware('can:sales.pdf');
     Route::get('returns/{saleReturn}/pdf', [Sales::class, 'generateCreditNotePdfEndpoint'])->name('pos.returns.generateCreditNotePdf')->middleware('can:sales.pdf');
     //generate pdf orders invoices
     Route::get('orders/{order}', [Sales::class, 'generatePdfOrderInvoice'])->name('pos.orders.generatePdfOrderInvoice')->middleware('can:sales.pdf');

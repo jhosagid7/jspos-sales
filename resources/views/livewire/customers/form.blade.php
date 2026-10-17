@@ -94,6 +94,22 @@
                         </a>
                     </li>
                     @endmodule
+
+                    {{-- Tab 7: Vehículos / Flota (Workshop Addon) --}}
+                    @addon('workshop')
+                    @if($editing && $customer->id > 0)
+                    <li class="nav-item mb-2">
+                        <a class="nav-link {{ $tab == 7 ? 'active' : '' }} d-flex align-items-center gap-4 p-3" 
+                           wire:click.prevent="$set('tab',7)" href="#">
+                            <i class="fas fa-car fa-2x"></i>
+                            <div>
+                                <h6 class="mb-0">Vehículos / Flota</h6>
+                                <small class="{{ $tab == 7 ? 'text-white' : 'text-muted' }}">Placas asociadas</small>
+                            </div>
+                        </a>
+                    </li>
+                    @endif
+                    @endaddon
                 </ul>
             </div>
 
@@ -669,6 +685,113 @@
                         </div>
                     </div>
                     @endmodule
+
+                    {{-- Tab 7: Vehículos / Flota (Workshop Addon) --}}
+                    @addon('workshop')
+                    @if($editing && $customer->id > 0)
+                    <div class="tab-pane fade {{ $tab == 7 ? 'active show' : '' }}" role="tabpanel">
+                        <div class="sidebar-body">
+                            {{-- Formulario para registrar nuevo vehículo asociado --}}
+                            <div class="card border-0 shadow-sm mb-4" style="background: #f8f9fa;">
+                                <div class="card-header bg-light d-flex justify-content-between align-items-center py-2">
+                                    <h6 class="font-weight-bold mb-0 text-dark">
+                                        <i class="fas fa-plus-circle text-primary mr-1"></i> Asignar Nuevo Vehículo a este Cliente
+                                    </h6>
+                                </div>
+                                <div class="card-body p-3">
+                                    <div class="row g-2">
+                                        <div class="col-md-3">
+                                            <label class="form-label font-weight-bold text-xs">Placa / Patente <span class="text-danger">*</span></label>
+                                            <input type="text" wire:model.live="newVehicle.plate" class="form-control form-control-sm text-uppercase" placeholder="Ej: AB123CD">
+                                            @error('newVehicle.plate') <span class="text-danger text-xs">{{ $message }}</span> @enderror
+                                        </div>
+                                        <div class="col-md-3">
+                                            <label class="form-label font-weight-bold text-xs">Marca <span class="text-danger">*</span></label>
+                                            <input type="text" wire:model.live="newVehicle.brand" class="form-control form-control-sm text-uppercase" placeholder="Ej: TOYOTA">
+                                            @error('newVehicle.brand') <span class="text-danger text-xs">{{ $message }}</span> @enderror
+                                        </div>
+                                        <div class="col-md-3">
+                                            <label class="form-label font-weight-bold text-xs">Modelo <span class="text-danger">*</span></label>
+                                            <input type="text" wire:model.live="newVehicle.model" class="form-control form-control-sm text-uppercase" placeholder="Ej: COROLLA">
+                                            @error('newVehicle.model') <span class="text-danger text-xs">{{ $message }}</span> @enderror
+                                        </div>
+                                        <div class="col-md-3">
+                                            <label class="form-label font-weight-bold text-xs">Año</label>
+                                            <input type="number" wire:model.live="newVehicle.year" class="form-control form-control-sm" placeholder="Ej: 2018">
+                                            @error('newVehicle.year') <span class="text-danger text-xs">{{ $message }}</span> @enderror
+                                        </div>
+                                    </div>
+                                    <div class="row g-2 mt-2">
+                                        <div class="col-md-4">
+                                            <label class="form-label font-weight-bold text-xs">Color</label>
+                                            <input type="text" wire:model.live="newVehicle.color" class="form-control form-control-sm text-uppercase" placeholder="Ej: BLANCO">
+                                            @error('newVehicle.color') <span class="text-danger text-xs">{{ $message }}</span> @enderror
+                                        </div>
+                                        <div class="col-md-4">
+                                            <label class="form-label font-weight-bold text-xs">Kilometraje Actual</label>
+                                            <input type="number" wire:model.live="newVehicle.current_mileage" class="form-control form-control-sm" placeholder="Ej: 85000">
+                                            @error('newVehicle.current_mileage') <span class="text-danger text-xs">{{ $message }}</span> @enderror
+                                        </div>
+                                        <div class="col-md-4 d-flex align-items-end">
+                                            <button type="button" class="btn btn-success btn-sm w-100 font-weight-bold" wire:click="addVehicle">
+                                                <i class="fas fa-save mr-1"></i> Guardar y Vincular Vehículo
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {{-- Listado de vehículos registrados del cliente --}}
+                            <div class="card border-0 shadow-sm">
+                                <div class="card-header bg-light py-2">
+                                    <h6 class="font-weight-bold mb-0 text-dark">
+                                        <i class="fas fa-car mr-1 text-secondary"></i> Flota de Vehículos Registrados ({{ count($customerVehicles) }})
+                                    </h6>
+                                </div>
+                                <div class="table-responsive">
+                                    <table class="table table-hover table-striped mb-0 text-sm">
+                                        <thead class="thead-light">
+                                            <tr>
+                                                <th>Placa</th>
+                                                <th>Marca y Modelo</th>
+                                                <th>Año</th>
+                                                <th>Color</th>
+                                                <th>Kilometraje</th>
+                                                <th class="text-center">Acciones</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            @forelse($customerVehicles as $v)
+                                                <tr>
+                                                    <td>
+                                                        <span class="badge badge-dark text-xs px-2 py-1 font-weight-bold">{{ $v->plate }}</span>
+                                                    </td>
+                                                    <td class="font-weight-bold text-dark">{{ $v->brand }} {{ $v->model }}</td>
+                                                    <td>{{ $v->year ?? 'N/D' }}</td>
+                                                    <td>{{ $v->color ?? 'N/D' }}</td>
+                                                    <td>{{ $v->current_mileage ? number_format($v->current_mileage) . ' km' : '0 km' }}</td>
+                                                    <td class="text-center">
+                                                        <button type="button" class="btn btn-outline-danger btn-xs" wire:click="deleteVehicle({{ $v->id }})" title="Eliminar Vehículo" onclick="return confirm('¿Está seguro de eliminar este vehículo?') || event.stopImmediatePropagation()">
+                                                            <i class="fas fa-trash"></i>
+                                                        </button>
+                                                    </td>
+                                                </tr>
+                                            @empty
+                                                <tr>
+                                                    <td colspan="6" class="text-center text-muted py-4">
+                                                        <i class="fas fa-car-side fa-2x d-block mb-2 text-muted"></i>
+                                                        Este cliente aún no tiene vehículos registrados. Use el formulario superior para registrar uno.
+                                                    </td>
+                                                </tr>
+                                            @endforelse
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    @endif
+                    @endaddon
                 </div>
             </div>
         </div>

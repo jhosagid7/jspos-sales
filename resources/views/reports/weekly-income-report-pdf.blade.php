@@ -10,7 +10,7 @@
         }
         body {
             font-family: 'Helvetica Neue', 'Helvetica', 'Arial', sans-serif;
-            font-size: 8px;
+            font-size: 7.5px;
             color: #333333;
             margin: 0;
             padding: 0;
@@ -20,8 +20,8 @@
         .header-container {
             width: 100%;
             border-bottom: 2px solid #2F5597;
-            padding-bottom: 5px;
-            margin-bottom: 10px;
+            padding-bottom: 3px;
+            margin-bottom: 6px;
         }
         .header-table {
             width: 100%;
@@ -32,24 +32,24 @@
             vertical-align: middle;
         }
         .company-name {
-            font-size: 13px;
+            font-size: 12px;
             font-weight: bold;
             color: #1F4E79;
             text-transform: uppercase;
         }
         .report-title {
-            font-size: 15px;
+            font-size: 13.5px;
             font-weight: bold;
             color: #2F5597;
-            margin-top: 3px;
+            margin-top: 2px;
             text-transform: uppercase;
             letter-spacing: 1px;
         }
         .week-range {
-            font-size: 11px;
+            font-size: 10px;
             font-weight: bold;
             color: #555555;
-            margin-top: 2px;
+            margin-top: 1px;
         }
         .header-meta {
             width: 50%;
@@ -62,8 +62,8 @@
             border-collapse: collapse;
         }
         .meta-table td {
-            padding: 2px 5px;
-            font-size: 8px;
+            padding: 1.5px 4px;
+            font-size: 7.5px;
             color: #555555;
         }
         .meta-label {
@@ -73,12 +73,12 @@
         }
         .meta-value {
             text-align: left;
-            padding-left: 10px;
+            padding-left: 8px;
         }
         .status-badge {
             display: inline-block;
-            padding: 3px 8px;
-            font-size: 9px;
+            padding: 2px 6px;
+            font-size: 8px;
             font-weight: bold;
             text-transform: uppercase;
             border-radius: 3px;
@@ -99,7 +99,7 @@
         .grid-table {
             width: 100%;
             border-collapse: separate;
-            border-spacing: 8px 0px;
+            border-spacing: 6px 0px;
             table-layout: fixed;
         }
         .grid-col {
@@ -111,16 +111,16 @@
         .card-table {
             width: 100%;
             border-collapse: collapse;
-            margin-bottom: 5px;
+            margin-bottom: 4px;
             background-color: #FFFFFF;
         }
         .card-header {
             background-color: #5B9BD5;
             color: #FFFFFF;
-            font-size: 8.5px;
+            font-size: 7.5px;
             font-weight: bold;
             text-align: center;
-            padding: 4px;
+            padding: 2.5px 3px;
             border: 1px solid #2F5597;
             text-transform: uppercase;
         }
@@ -128,22 +128,24 @@
             background-color: #F2F2F2;
             color: #333333;
             font-weight: bold;
-            font-size: 7.5px;
+            font-size: 6.8px;
             text-align: center;
-            padding: 2.5px;
+            padding: 1.8px 2px;
             border: 0.5px solid #D9D9D9;
         }
         .card-td-label {
             font-weight: bold;
             color: #444444;
-            padding: 2.2px 4px;
+            padding: 1.5px 3px;
             border: 0.5px solid #D9D9D9;
             text-align: left;
+            font-size: 6.8px;
         }
         .card-td-amount {
-            padding: 2.2px 4px;
+            padding: 1.5px 3px;
             border: 0.5px solid #D9D9D9;
             text-align: right;
+            font-size: 6.8px;
         }
         .card-td-empty {
             color: #BBBBBB;

@@ -98,6 +98,39 @@
                     $canSeeLogistics = auth()->user()->hasRole(['Admin', 'Supervisor', 'Super Admin']) || auth()->user()->can('sales.index');
                 @endphp
 
+                {{-- MÓDULO: TALLER AUTOMOTRIZ (ADDON BÚCARO) --}}
+                @addon('workshop')
+                <li class="nav-item {{ Request::is('workshop*') ? 'menu-open' : '' }}">
+                    <a href="#" class="nav-link {{ Request::is('workshop*') ? 'active' : '' }}">
+                        <i class="nav-icon fas fa-wrench text-warning"></i>
+                        <p>
+                            TALLER AUTOMOTRIZ
+                            <i class="right fas fa-angle-left"></i>
+                        </p>
+                    </a>
+                    <ul class="nav nav-treeview">
+                        <li class="nav-item">
+                            <a href="{{ route('workshop.work-orders') }}" class="nav-link {{ Request::is('workshop/work-orders*') ? 'active' : '' }}">
+                                <i class="far fa-circle nav-icon"></i>
+                                <p>Órdenes de Trabajo</p>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="{{ route('workshop.vehicles.history') }}" class="nav-link {{ Request::is('workshop/vehicles/history*') ? 'active' : '' }}">
+                                <i class="far fa-circle nav-icon"></i>
+                                <p>Historial de Vehículos</p>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="{{ route('workshop.commissions') }}" class="nav-link {{ Request::is('workshop/commissions*') ? 'active' : '' }}">
+                                <i class="far fa-circle nav-icon"></i>
+                                <p>Comisiones de Mecánicos</p>
+                            </a>
+                        </li>
+                    </ul>
+                </li>
+                @endaddon
+
                 {{-- MÓDULO 1: GESTIÓN COMERCIAL --}}
                 @unlessrole('Driver')
                 @anyMenuAllowed(['sales', 'credit.authorizations', 'purchases', 'purchase.list', 'price-list.index', 'commissions'])

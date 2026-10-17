@@ -26,6 +26,8 @@ class Settings extends Component
     public $discountRules = [];
     public $ticketSettings = []; // Configuración modular de tickets térmicos
     public $pdfSettings = []; // Configuración modular de facturas y documentos PDF
+    public $enableFormaLibre = false; // Habilitar Facturación en Forma Libre
+    public $formaLibreTemplate = 'bucaros'; // Plantilla de Forma Libre seleccionada
 
     public $logo, $logo_preview; // Logo properties
     public $backupEmails; // Backup Emails
@@ -238,6 +240,10 @@ class Settings extends Component
                 }
             }
 
+            // Forma Libre Settings
+            $this->enableFormaLibre = (bool) ($config->enable_forma_libre ?? false);
+            $this->formaLibreTemplate = $config->forma_libre_template ?? 'bucaros';
+
             // Regional Terminology Settings
             $labels = is_array($config->custom_labels) ? $config->custom_labels : (json_decode($config->custom_labels, true) ?? []);
             $this->warehouseTerm = $labels['warehouse_term'] ?? 'deposito';
@@ -416,6 +422,8 @@ class Settings extends Component
                 'sequential_cut_off_date' => $this->sequentialCutOffDate ? \Carbon\Carbon::parse($this->sequentialCutOffDate)->format('Y-m-d H:i:s') : null,
                 'ticket_settings' => $this->ticketSettings,
                 'pdf_settings' => $this->pdfSettings,
+                'enable_forma_libre' => $this->enableFormaLibre ? 1 : 0,
+                'forma_libre_template' => $this->formaLibreTemplate ?: 'bucaros',
                 'custom_labels' => array_merge(
                     is_array($currentConfig?->custom_labels) ? $currentConfig->custom_labels : (json_decode($currentConfig?->custom_labels ?? '[]', true) ?? []),
                     [

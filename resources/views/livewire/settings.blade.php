@@ -2167,6 +2167,42 @@ Departamento de Control de Calidad y Manufactura
                                 </div>
 
                                 <div class="row g-4">
+                                    {{-- 0. Facturación en Forma Libre / Papelería Pre-impresa --}}
+                                    <div class="col-12">
+                                        <div class="card shadow-sm border-0 mb-0 border-start border-4 border-info">
+                                            <div class="card-header bg-light py-2 px-3 border-bottom d-flex align-items-center justify-content-between">
+                                                <div class="d-flex align-items-center gap-2">
+                                                    <i class="fa fa-print text-info"></i>
+                                                    <span class="fw-bold text-dark">Facturación en Forma Libre / Papelería Pre-impresa</span>
+                                                </div>
+                                                <span class="badge bg-info text-white">Opcional</span>
+                                            </div>
+                                            <div class="card-body p-3">
+                                                <div class="row g-3 align-items-center">
+                                                    <div class="col-md-6">
+                                                        <div class="custom-control custom-switch">
+                                                            <input type="checkbox" class="custom-control-input" id="enableFormaLibreSwitch" wire:model.live="enableFormaLibre">
+                                                            <label class="custom-control-label fw-bold" for="enableFormaLibreSwitch">Habilitar Facturación en Forma Libre</label>
+                                                        </div>
+                                                        <small class="text-muted d-block ps-4">
+                                                            Activa la opción de registrar Facturas Fiscales con número de talonario manual e imprimir directamente sobre hojas membretadas continuas (ej. formato Automotriz Búcaros).
+                                                        </small>
+                                                    </div>
+
+                                                    <div class="col-md-6" @if(!$enableFormaLibre) style="opacity: 0.5; pointer-events: none;" @endif>
+                                                        <label class="form-label small fw-bold text-dark mb-1">Plantilla / Diseño de Forma Libre:</label>
+                                                        <select class="form-control form-control-sm" wire:model="formaLibreTemplate" @if(!$enableFormaLibre) disabled @endif>
+                                                            <option value="bucaros">Automotriz Búcaros (Papel Continuo Carta - 216mm x 279mm)</option>
+                                                        </select>
+                                                        <small class="text-muted d-block mt-1">
+                                                            Selecciona las coordenadas de impresión exactas según el membrete físico de la imprenta autorizada.
+                                                        </small>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
                                     {{-- 1. Factura de Venta Contado (Pagada) --}}
                                     <div class="col-12">
                                         <div class="card shadow-sm border-0 mb-0">
