@@ -275,4 +275,28 @@ class UserMenuPermissionsTest extends TestCase
         $view->assertDontSee('REGISTROS MAESTROS');
         $view->assertDontSee('CENTRO DE REPORTES');
     }
+
+    /** @test */
+    public function catalogue_pdf_menu_is_present_in_catalog_and_can_be_configured_for_user()
+    {
+        $superAdmin = User::factory()->create();
+        $superAdmin->assignRole('Super Admin');
+
+        $this->actingAs($superAdmin);
+
+        $catalog = ShortcutService::getCatalog();
+        $this->assertArrayHasKey('catalogue.pdf', $catalog);
+        $this->assertEquals('Catálogo PDF', $catalog['catalogue.pdf']['short_label']);
+
+        $employee = User::factory()->create(['name' => 'Empleado Daniela']);
+        $employee->assignRole('Admin');
+
+        // Permitted explicitly
+        ShortcutService::setAllowedMenusForUser($employee, ['catalogue.pdf']);
+        $this->assertTrue(ShortcutService::isMenuAllowedForUser('catalogue.pdf', $employee));
+
+        // When not in allowed_menus, is blocked
+        ShortcutService::setAllowedMenusForUser($employee, ['sales']);
+        $this->assertFalse(ShortcutService::isMenuAllowedForUser('catalogue.pdf', $employee));
+    }
 }

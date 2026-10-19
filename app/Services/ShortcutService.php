@@ -153,6 +153,16 @@ class ShortcutService
                 'category' => 'Inventario & Stock',
                 'color' => '#6610f2',
             ],
+            'catalogue.pdf' => [
+                'key' => 'catalogue.pdf',
+                'label' => 'Catálogo PDF',
+                'short_label' => 'Catálogo PDF',
+                'icon' => 'fas fa-file-pdf',
+                'route' => 'catalogue.pdf',
+                'permission' => 'products.index',
+                'category' => 'Inventario & Stock',
+                'color' => '#dc3545',
+            ],
             'inventories' => [
                 'key' => 'inventories',
                 'label' => 'Stock General',

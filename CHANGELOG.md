@@ -1,3 +1,11 @@
+## [1.10.467] - 2026-10-19
+
+### Added & Enhanced (Control de Visibilidad y Permisos para Menú Catálogo PDF)
+- **Inclusión de Catálogo PDF en Catálogo de Módulos**:
+  - `ShortcutService.php`: Registrada la ruta y módulo `'catalogue.pdf'` en el catálogo del sistema dentro de la categoría `'Inventario & Stock'` con permiso asociado `'products.index'`. Esto permite que el módulo aparezca visible en la pantalla de "Control de Menús y Módulos por Usuario" (`/settings/user-menus`), facilitando su activación, desactivación y asignación individual o por rol.
+- **Pruebas Automatizadas (TDD)**:
+  - `UserMenuPermissionsTest.php`: Incorporada prueba unitaria/de integración (`catalogue_pdf_menu_is_present_in_catalog_and_can_be_configured_for_user`) que valida la presencia del módulo en el catálogo de atajos y la correcta asignación y persistencia en los menús permitidos del usuario.
+
 ## [1.10.466] - 2026-10-16
 
 ### Fixed & Enhanced (Reportes de Ingresos Semanal/Mensual Dinámicos y Cierre Diario)
