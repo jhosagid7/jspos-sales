@@ -235,4 +235,66 @@ class VpsSyncService
             return ['success' => false, 'message' => $e->getMessage()];
         }
     }
+
+    /**
+     * Fetch orders that have requested editing on the VPS portal
+     */
+    public function getEditRequestedOrders(): array
+    {
+        if (empty($this->token)) {
+            return [];
+        }
+
+        try {
+            $response = Http::withHeaders([
+                'X-Sync-Token' => $this->token,
+                'Accept' => 'application/json',
+            ])->timeout(10)->get("{$this->baseUrl}/api/sync/orders/edit-requests");
+
+            if ($response->successful()) {
+                return $response->json('orders', []);
+            }
+            return [];
+        } catch (\Exception $e) {
+            Log::warning("VPS Sync Warning getEditRequestedOrders: " . $e->getMessage());
+            return [];
+        }
+    }
+
+    /**
+     * Notify VPS that an order was reverted to draft by the office
+     */
+    public function notifyOrderRevertedToDraft(Order $order): array
+    {
+        if (empty($this->token)) {
+            return ['success' => false, 'message' => 'Token no configurado'];
+        }
+
+        // Extract ORD-VPS number from notes if present
+        $vpsOrderNumber = null;
+        if (preg_match('/(ORD-VPS-[A-Z0-9\-]+)/', (string)$order->notes, $matches)) {
+            $vpsOrderNumber = $matches[1];
+        }
+
+        try {
+            $response = Http::withHeaders([
+                'X-Sync-Token' => $this->token,
+                'Accept' => 'application/json',
+            ])->timeout(15)->post("{$this->baseUrl}/api/sync/orders/revert-draft", [
+                'vps_order_number' => $vpsOrderNumber,
+                'pos_order_number' => $order->order_number,
+            ]);
+
+            if ($response->successful()) {
+                Log::info("VPS Sync: Orden {$vpsOrderNumber} ({$order->order_number}) revertida a borrador en VPS.");
+                return ['success' => true, 'data' => $response->json()];
+            }
+
+            Log::warning("VPS Sync revert-draft response: " . $response->body());
+            return ['success' => false, 'message' => $response->body()];
+        } catch (\Exception $e) {
+            Log::error("VPS Sync Exception notifyOrderRevertedToDraft: " . $e->getMessage());
+            return ['success' => false, 'message' => $e->getMessage()];
+        }
+    }
 }

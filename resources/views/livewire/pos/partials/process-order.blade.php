@@ -11,6 +11,16 @@
                     <button class="py-0 btn-close" type="button" data-dismiss="modal" aria-label="Close" onclick="$('#modalProcessOrder').modal('hide')"></button>
                 </div>
                 <div class="modal-body">
+                    @if(!empty($webEditRequests))
+                        <div class="alert alert-warning py-2 px-3 mb-3 d-flex align-items-center justify-content-between shadow-sm" style="border-left: 5px solid #ff9800; background-color: #fff3cd;">
+                            <div>
+                                <i class="fas fa-exclamation-triangle text-warning mr-2"></i>
+                                <strong>⚠️ Solicitudes de Edición Web:</strong>
+                                <span>Hay {{ count($webEditRequests) }} cliente(s) que han solicitado modificar su pedido web. Usa el menú de opciones (tres puntos) y haz clic en <strong>"Desbloquear (Borrador)"</strong> para permitirle modificarlo.</span>
+                            </div>
+                            <span class="badge badge-warning text-dark font-weight-bold px-2 py-1">{{ count($webEditRequests) }} Pendiente(s)</span>
+                        </div>
+                    @endif
                     <div class="faq-form row g-2">
                             <div class="col-md-4">
                                 <input wire:model.defer="searchOrder" wire:keydown.enter.prevent="getOrdersWithDetails"
@@ -148,8 +158,27 @@
                                 <tbody>
 
                                     @forelse ($orders as $order)
-                                        <tr class="text-center">
-                                            <td data-label="Folio">{{ $order->order_number ?? $order->id }}</td>
+                                        @php
+                                            $isEditRequested = false;
+                                            if (!empty($webEditRequests)) {
+                                                foreach ($webEditRequests as $req) {
+                                                    if ((!empty($req['vps_order_number']) && str_contains($order->notes ?? '', $req['vps_order_number'])) || 
+                                                        (!empty($req['pos_order_number']) && $req['pos_order_number'] == $order->order_number)) {
+                                                        $isEditRequested = true;
+                                                        break;
+                                                    }
+                                                }
+                                            }
+                                        @endphp
+                                        <tr class="text-center {{ $isEditRequested ? 'table-warning' : '' }}">
+                                            <td data-label="Folio">
+                                                <strong>{{ $order->order_number ?? $order->id }}</strong>
+                                                @if($isEditRequested)
+                                                    <span class="badge badge-warning text-dark font-weight-bold ml-1 animate-pulse" title="¡El cliente solicitó modificar este pedido en el portal web!">
+                                                        <i class="fas fa-exclamation-triangle"></i> ¡Solicitó Editar!
+                                                    </span>
+                                                @endif
+                                            </td>
                                             <td data-label="Cliente" class="text-left" style="max-width: 140px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{ $order->customer->name }}</td>
                                             <td data-label="Vendedor">
                                                 @php $assignedSeller = $order->customer->seller; @endphp
@@ -178,7 +207,13 @@
                                             <td data-label="Total" class="text-right font-weight-bold">${{ number_format($order->total, 2) }}</td>
                                             <td data-label="Articulos">{{ $order->items }}</td>
                                             <td data-label="Estatus">
-                                                <span class="badge f-10 {{ $order->status == 'paid' ? 'badge-light-success' : ($order->status == 'return' ? 'badge-light-warning' : ($order->status == 'pending' ? 'badge-light-warning' : 'badge-light-danger')) }}">{{ $order->status }}</span>
+                                                @if($order->status == 'draft')
+                                                    <span class="badge badge-info text-white font-weight-bold">Borrador (Editable)</span>
+                                                @elseif($isEditRequested)
+                                                    <span class="badge badge-warning text-dark font-weight-bold animate-pulse">Solicitó Editar</span>
+                                                @else
+                                                    <span class="badge f-10 {{ $order->status == 'paid' ? 'badge-light-success' : ($order->status == 'return' ? 'badge-light-warning' : ($order->status == 'pending' ? 'badge-light-warning' : 'badge-light-danger')) }}">{{ $order->status }}</span>
+                                                @endif
                                             </td>
                                             <td data-label="Fecha">{{ $order->created_at->format('d/m/Y H:i') }}</td>
 

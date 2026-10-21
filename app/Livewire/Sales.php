@@ -91,6 +91,7 @@ class Sales extends Component
     public $search = '';
     public $searchOrder = '';
     public $showProcessOrderModal = false;
+    public $webEditRequests = [];
 
     public $payments = []; // Lista de pagos realizados
     public $paymentAmount; // Monto del pago actual
@@ -2056,6 +2057,17 @@ class Sales extends Component
 
             DB::commit();
             $this->dispatch('noty', msg: 'ORDEN #' . $order->order_number . ' DEVUELTA A BORRADOR');
+
+            // Notify VPS portal if this is a web order
+            try {
+                $syncService = app(\App\Services\VpsSyncService::class);
+                $syncRes = $syncService->notifyOrderRevertedToDraft($order);
+                if ($syncRes['success'] ?? false) {
+                    $this->dispatch('noty', msg: 'PEDIDO HABILITADO PARA EDICIÓN EN EL PORTAL WEB');
+                }
+            } catch (\Exception $syncEx) {
+                Log::warning("Could not sync revertToDraft to VPS: " . $syncEx->getMessage());
+            }
             
         } catch (\Exception $e) {
             DB::rollBack();
@@ -2076,11 +2088,18 @@ class Sales extends Component
         try {
             $syncService = app(\App\Services\VpsSyncService::class);
             $res = $syncService->pullPendingOrders();
+            $this->webEditRequests = $syncService->getEditRequestedOrders();
+
+            $pendingEditCount = count($this->webEditRequests);
+            if ($pendingEditCount > 0) {
+                $this->dispatch('noty', msg: "⚠️ ATENCIÓN: Hay {$pendingEditCount} solicitud(es) de clientes para editar pedidos web.");
+            }
+
             if ($res['success']) {
                 $count = $res['ingested_orders'] ?? 0;
                 if ($count > 0) {
                     $this->dispatch('noty', msg: "¡{$count} PEDIDO(S) NUEVO(S) DESCARGADO(S) DE LA WEB!");
-                } elseif (!$silent) {
+                } elseif (!$silent && $pendingEditCount === 0) {
                     $this->dispatch('noty', msg: "NO HAY PEDIDOS NUEVOS EN LA WEB");
                 }
             } elseif (!$silent) {
