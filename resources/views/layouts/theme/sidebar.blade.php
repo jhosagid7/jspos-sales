@@ -1120,6 +1120,12 @@
                                         <p>Configuración</p>
                                     </a>
                                 </li>
+                                <li class="nav-item">
+                                    <a href="{{ route('settings.dispatch_routes') }}" class="nav-link {{ Request::is('settings/dispatch-routes*') ? 'active' : '' }}">
+                                        <i class="far fa-dot-circle nav-icon text-warning"></i>
+                                        <p>Rutas de Despacho</p>
+                                    </a>
+                                </li>
                                 @endmenuAllowed
                                 @role('Super Admin')
                                 @module('module_updates')
