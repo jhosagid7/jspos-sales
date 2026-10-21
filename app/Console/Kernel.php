@@ -85,6 +85,12 @@ class Kernel extends ConsoleKernel
             ->timezone('America/Caracas')
             ->dailyAt($treasuryCutoffHour)
             ->runInBackground();
+
+        // Sincronización continua de pedidos pendientes con VPS
+        $schedule->command('vps:sync --pull-orders')
+            ->everyMinute()
+            ->withoutOverlapping()
+            ->runInBackground();
     }
 
     /**
