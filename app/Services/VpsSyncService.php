@@ -84,10 +84,11 @@ class VpsSyncService
         }
 
         // Only send customers that can log in (have password) or all customers
-        $customers = Customer::with(['latestCustomerConfig'])
+        $customers = Customer::with(['latestCustomerConfig', 'dispatchRoute'])
             ->get()
             ->map(function ($c) {
                 $config = $c->latestCustomerConfig;
+                $route = $c->dispatchRoute;
                 return [
                     'id' => $c->id,
                     'name' => $c->name,
@@ -98,6 +99,13 @@ class VpsSyncService
                     'address' => $c->address,
                     'city' => $c->city,
                     'seller_id' => $c->seller_id,
+                    'dispatch_route' => $route ? [
+                        'name' => $route->name,
+                        'route_type' => $route->route_type,
+                        'dispatch_day' => $route->dispatch_day,
+                        'cutoff_day' => $route->cutoff_day,
+                        'cutoff_time' => $route->cutoff_time,
+                    ] : null,
                     'config' => $config ? [
                         'commission_percent' => (float) $config->commission_percent,
                         'freight_percent' => (float) $config->freight_percent,
@@ -165,6 +173,10 @@ class VpsSyncService
                     $config->save();
                     $posOrderNumber = 'P' . str_pad($config->order_sequence, 8, '0', STR_PAD_LEFT);
 
+                    $deliveryNote = ($vpsOrder['delivery_type'] ?? 'route') === 'pickup'
+                        ? '🏢 [RETIRO EN SEDE]'
+                        : '🚚 [RUTA: ' . ($customer->dispatchRoute->name ?? 'General') . ']';
+
                     $localOrder = Order::create([
                         'order_number' => $posOrderNumber,
                         'customer_id' => $vpsOrder['customer_id'],
@@ -172,7 +184,7 @@ class VpsSyncService
                         'status' => 'pending', // Pending for office review
                         'total' => (float) $vpsOrder['total'],
                         'items' => count($vpsOrder['details'] ?? []),
-                        'notes' => "Pedido Web [{$vpsOrder['vps_order_number']}]. " . ($vpsOrder['notes'] ?? ''),
+                        'notes' => "{$deliveryNote} Pedido Web [{$vpsOrder['vps_order_number']}]. " . ($vpsOrder['notes'] ?? ''),
                         'discount' => 0,
                     ]);
 

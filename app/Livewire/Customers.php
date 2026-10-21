@@ -62,6 +62,7 @@ class Customers extends Component
         'customer.wa_dispatch_mode' => 'nullable|in:auto,manual',
         'customer.email_dispatch_mode' => 'nullable|in:auto,manual',
         'customer.wallet_balance' => 'nullable|numeric|min:0',
+        'customer.dispatch_route_id' => 'nullable|integer',
         'password' => 'nullable|min:6|max:20',
     ];
 
@@ -112,7 +113,8 @@ class Customers extends Component
         $this->sellers = $hasCommissions ? \App\Models\User::sellers()->get() : collect();
         
         return view('livewire.customers.customers', [
-            'customers' => $this->loadCustomers()
+            'customers' => $this->loadCustomers(),
+            'dispatchRoutes' => \App\Models\DispatchRoute::where('is_active', true)->orderBy('name')->get()
         ]);
     }
 

@@ -152,10 +152,23 @@
                                     @error('customer.email') <span class="text-danger">{{ $message }}</span> @enderror
                                 </div>
                                 <div class="col-sm-6 mt-3">
-                                    <label class="form-label">Contraseña (App VIP)</label>
-                                    <input wire:model="password" class="form-control" type="password" placeholder="Solo si tiene acceso a la App VIP">
+                                    <label class="form-label">Contraseña (Portal Web / App)</label>
+                                    <input wire:model="password" class="form-control" type="password" placeholder="Solo si tiene acceso al Portal">
                                     <small class="text-muted">Dejar vacío si no se desea cambiar. Mínimo 6 caracteres.</small>
                                     @error('password') <br><span class="text-danger">{{ $message }}</span> @enderror
+                                </div>
+                                <div class="col-sm-6 mt-3">
+                                    <label class="form-label font-weight-bold">🚚 Ruta de Despacho Web</label>
+                                    <select wire:model="customer.dispatch_route_id" class="form-control">
+                                        <option value="">-- Sin ruta asignada (General) --</option>
+                                        @if(!empty($dispatchRoutes))
+                                            @foreach($dispatchRoutes as $dRoute)
+                                                <option value="{{ $dRoute->id }}">{{ $dRoute->name }} (Corte: {{ ucfirst($dRoute->cutoff_day ?? 'N/A') }} {{ substr($dRoute->cutoff_time, 0, 5) }})</option>
+                                            @endforeach
+                                        @endif
+                                    </select>
+                                    <small class="text-muted">Días de entrega y horario de corte del portal web.</small>
+                                    @error('customer.dispatch_route_id') <br><span class="text-danger">{{ $message }}</span> @enderror
                                 </div>
 
                             </div>

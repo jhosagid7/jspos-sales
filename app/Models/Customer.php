@@ -23,6 +23,7 @@ class Customer extends Authenticatable
         'taxpayer_id',
         'type',
         'seller_id',
+        'dispatch_route_id',
         'customer_commission_1_threshold',
         'customer_commission_1_percentage',
         'customer_commission_1_percentage',
@@ -99,6 +100,11 @@ class Customer extends Authenticatable
     public function vehicles()
     {
         return $this->hasMany(Vehicle::class);
+    }
+
+    public function dispatchRoute()
+    {
+        return $this->belongsTo(DispatchRoute::class, 'dispatch_route_id');
     }
 
     /**
