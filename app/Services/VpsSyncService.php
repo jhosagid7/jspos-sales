@@ -138,6 +138,49 @@ class VpsSyncService
     }
 
     /**
+     * Send active administrators and operators to the VPS portal
+     */
+    public function pushAdmins(): array
+    {
+        if (empty($this->token)) {
+            return ['success' => false, 'message' => 'VPS_SYNC_TOKEN no está configurado en .env'];
+        }
+
+        $admins = \App\Models\User::where('status', 'Active')
+            ->whereIn('profile', ['Super Admin', 'Administrador', 'Admin'])
+            ->get()
+            ->map(function ($u) {
+                return [
+                    'id' => $u->id,
+                    'name' => $u->name,
+                    'email' => $u->email,
+                    'password' => $u->password, // Exact bcrypt hash
+                ];
+            })
+            ->toArray();
+
+        try {
+            $response = Http::withHeaders([
+                'X-Sync-Token' => $this->token,
+                'Accept' => 'application/json',
+            ])->timeout(30)->post("{$this->baseUrl}/api/sync/admins", [
+                'admins' => $admins,
+            ]);
+
+            if ($response->successful()) {
+                Log::info("VPS Sync: Administradores enviados con éxito (" . count($admins) . " usuarios).");
+                return ['success' => true, 'count' => count($admins), 'data' => $response->json()];
+            }
+
+            Log::error("VPS Sync Error Admins: " . $response->body());
+            return ['success' => false, 'message' => $response->body()];
+        } catch (\Exception $e) {
+            Log::error("VPS Sync Exception Admins: " . $e->getMessage());
+            return ['success' => false, 'message' => $e->getMessage()];
+        }
+    }
+
+    /**
      * Pull pending customer orders from the VPS portal and insert into local jspos-sales
      */
     public function pullPendingOrders(): array

@@ -10,12 +10,12 @@ class SyncVpsOrdersCommand extends Command
     /**
      * The name and signature of the console command.
      */
-    protected $signature = 'vps:sync {--push-catalog : Subir catálogo al VPS} {--push-customers : Subir clientes al VPS} {--pull-orders : Descargar pedidos pendientes}';
+    protected $signature = 'vps:sync {--push-catalog : Subir catálogo al VPS} {--push-customers : Subir clientes al VPS} {--push-admins : Subir administradores al VPS} {--pull-orders : Descargar pedidos pendientes}';
 
     /**
      * The console command description.
      */
-    protected $description = 'Sincronizar catálogo, clientes y órdenes con el servidor VPS de pedidos';
+    protected $description = 'Sincronizar catálogo, clientes, administradores y órdenes con el servidor VPS de pedidos';
 
     /**
      * Execute the console command.
@@ -26,9 +26,10 @@ class SyncVpsOrdersCommand extends Command
 
         $pushCatalog = $this->option('push-catalog');
         $pushCustomers = $this->option('push-customers');
+        $pushAdmins = $this->option('push-admins');
         $pullOrders = $this->option('pull-orders');
 
-        $runAll = !$pushCatalog && !$pushCustomers && !$pullOrders;
+        $runAll = !$pushCatalog && !$pushCustomers && !$pushAdmins && !$pullOrders;
 
         if ($runAll || $pushCatalog) {
             $this->line("1. Subiendo catálogo de productos...");
@@ -50,8 +51,18 @@ class SyncVpsOrdersCommand extends Command
             }
         }
 
+        if ($runAll || $pushAdmins) {
+            $this->line("3. Subiendo administradores de jspos-sales...");
+            $res = $syncService->pushAdmins();
+            if ($res['success']) {
+                $this->info("✓ Administradores sincronizados (" . ($res['count'] ?? 0) . " usuarios).");
+            } else {
+                $this->error("✗ Error en administradores: " . ($res['message'] ?? 'Desconocido'));
+            }
+        }
+
         if ($runAll || $pullOrders) {
-            $this->line("3. Descargando pedidos pendientes del VPS...");
+            $this->line("4. Descargando pedidos pendientes del VPS...");
             $res = $syncService->pullPendingOrders();
             if ($res['success']) {
                 $this->info("✓ Pedidos descargados e ingresados: " . ($res['ingested_orders'] ?? 0));
