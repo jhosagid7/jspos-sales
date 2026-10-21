@@ -2064,6 +2064,35 @@ class Sales extends Component
         }
     }
 
+    public function updatedShowProcessOrderModal($value)
+    {
+        if ($value) {
+            $this->syncVpsOrders(silent: true);
+        }
+    }
+
+    public function syncVpsOrders($silent = false)
+    {
+        try {
+            $syncService = app(\App\Services\VpsSyncService::class);
+            $res = $syncService->pullPendingOrders();
+            if ($res['success']) {
+                $count = $res['ingested_orders'] ?? 0;
+                if ($count > 0) {
+                    $this->dispatch('noty', msg: "¡{$count} PEDIDO(S) NUEVO(S) DESCARGADO(S) DE LA WEB!");
+                } elseif (!$silent) {
+                    $this->dispatch('noty', msg: "NO HAY PEDIDOS NUEVOS EN LA WEB");
+                }
+            } elseif (!$silent) {
+                $this->dispatch('noty', msg: "ERROR SYNC: " . ($res['message'] ?? ''));
+            }
+        } catch (\Exception $e) {
+            if (!$silent) {
+                $this->dispatch('noty', msg: "ERROR AL SINCRONIZAR: " . $e->getMessage());
+            }
+        }
+    }
+
     public function getOrdersWithDetails()
     {
         if (!$this->showProcessOrderModal) {

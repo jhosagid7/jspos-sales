@@ -2,8 +2,12 @@
     <div wire:ignore.self class="modal fade" id="modalProcessOrder" tabindex="-1" role="dialog">
         <div class="modal-dialog modal-dialog-centered modal-xl" role="document">
             <div class="modal-content">
-                <div class="modal-header bg-primary">
-                    <h5 class="modal-title">Procesar Ordenes</h5>
+                <div class="modal-header bg-primary d-flex align-items-center">
+                    <h5 class="modal-title mb-0">Procesar Ordenes</h5>
+                    <button wire:click="syncVpsOrders" wire:loading.attr="disabled" class="btn btn-sm btn-warning font-weight-bold ml-auto mr-3 shadow-sm" type="button" title="Consultar pedidos nuevos de la web">
+                        <span wire:loading.remove wire:target="syncVpsOrders">🔄 Sincronizar Pedidos Web</span>
+                        <span wire:loading wire:target="syncVpsOrders">⏳ Sincronizando...</span>
+                    </button>
                     <button class="py-0 btn-close" type="button" data-dismiss="modal" aria-label="Close" onclick="$('#modalProcessOrder').modal('hide')"></button>
                 </div>
                 <div class="modal-body">
