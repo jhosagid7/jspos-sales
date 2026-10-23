@@ -185,6 +185,10 @@ class FormaLibreConfigurationTest extends TestCase
 
     public function test_sales_report_displays_fiscal_badge_and_forma_libre_pdf_button(): void
     {
+        $config = Configuration::first();
+        $config->update(['enable_forma_libre' => true]);
+        $this->resetConfigCache();
+
         $customer = Customer::create([
             'name' => 'AGUAS DE MERIDA C.A.',
             'document_type' => 'J',
@@ -218,6 +222,10 @@ class FormaLibreConfigurationTest extends TestCase
 
     public function test_sales_report_can_search_by_fiscal_number(): void
     {
+        $config = Configuration::first();
+        $config->update(['enable_forma_libre' => true]);
+        $this->resetConfigCache();
+
         $customer = Customer::create([
             'name' => 'AGUAS DE MERIDA C.A.',
             'document_type' => 'J',
@@ -325,5 +333,129 @@ class FormaLibreConfigurationTest extends TestCase
         ])->render();
         $this->assertStringContainsString('<img src="data:image/jpeg;base64,fakeimagedata', $previewHtml);
         $this->assertStringContainsString('@media print', $previewHtml);
+    }
+
+    public function test_sales_report_hides_fiscal_badge_and_buttons_when_forma_libre_is_disabled(): void
+    {
+        $this->resetConfigCache();
+        $this->assertFalse(ConfigurationService::isFormaLibreEnabled());
+
+        $customer = Customer::create([
+            'name' => 'CLIENTE ESTANDAR',
+            'document_type' => 'J',
+            'document_number' => '554433221',
+        ]);
+
+        $sale = Sale::create([
+            'customer_id' => $customer->id,
+            'user_id' => $this->adminUser->id,
+            'total' => 50.00,
+            'total_usd' => 50.00,
+            'items' => 1,
+            'discount' => 0,
+            'status' => 'paid',
+            'type' => 'cash',
+            'document_type' => 'invoice',
+            'fiscal_number' => '0099',
+            'is_fiscal' => true,
+            'invoice_number' => 'F00001234',
+        ]);
+
+        Livewire::actingAs($this->adminUser)
+            ->test(SalesReport::class)
+            ->set('showReport', true)
+            ->assertSee('F00001234')
+            ->assertDontSee('FAC: 0099')
+            ->assertDontSee('FISCAL')
+            ->assertDontSee(route('pos.sales.generatePdfFormaLibre', ['sale' => $sale->id, 'preview' => 1]))
+            ->assertDontSee(route('pos.sales.generatePdfFormaLibre', $sale->id))
+            ->assertSee(route('pos.sales.generatePdfInvoice', $sale->id));
+    }
+
+    public function test_checkout_does_not_set_is_fiscal_when_forma_libre_is_disabled(): void
+    {
+        $config = Configuration::first();
+        $config->update(['vat' => 0]);
+        $this->resetConfigCache();
+        $this->assertFalse(ConfigurationService::isFormaLibreEnabled());
+
+        \App\Models\CashRegister::create([
+            'user_id' => $this->adminUser->id,
+            'status' => 'open',
+            'opening_date' => now(),
+            'total_opening_amount' => 1000.00,
+        ]);
+
+        $customer = Customer::create([
+            'name' => 'CLIENTE NO FISCAL',
+            'type' => 'Consumidor Final',
+            'document_type' => 'V',
+            'document_number' => '11223344',
+            'taxpayer_id' => 'V11223344',
+            'address' => 'Caracas',
+            'city' => 'Caracas',
+            'phone' => '0412-1111111',
+            'allow_credit' => false,
+            'seller_id' => $this->adminUser->id,
+        ]);
+
+        \App\Models\CustomerConfig::create([
+            'customer_id' => $customer->id,
+            'commission_percent' => 0.00,
+            'freight_percent' => 0.00,
+            'exchange_diff_percent' => 0.00,
+        ]);
+
+        $category = Category::firstOrCreate(['name' => 'GENERAL']);
+        $supplier = Supplier::firstOrCreate(['name' => 'PROV']);
+        $product = Product::create([
+            'name' => 'Prod Std',
+            'sku' => 'STD-01',
+            'cost' => 10,
+            'price' => 20,
+            'price1' => 20,
+            'price_usd' => 20,
+            'show_in_sales' => true,
+            'manage_stock' => false,
+            'stock_qty' => 5,
+            'low_stock' => 0,
+            'category_id' => $category->id,
+            'supplier_id' => $supplier->id,
+            'type' => 'physical',
+        ]);
+
+        $cartItem = [
+            'id' => $product->id,
+            'pid' => $product->id,
+            'sku' => $product->sku,
+            'name' => $product->name,
+            'qty' => 1,
+            'price' => 20.00,
+            'base_price' => 20.00,
+            'sale_price' => 20.00,
+            'tax' => 0.00,
+            'total' => 20.00,
+            'pricelist' => [],
+        ];
+
+        session(['cart' => [$cartItem]]);
+
+        Livewire::actingAs($this->adminUser)
+            ->test(Sales::class)
+            ->call('setCustomer', $customer->toArray())
+            ->set('cart', collect([$cartItem]))
+            ->set('totalCart', 20.00)
+            ->set('itemsCart', 1)
+            ->set('selectedPaymentMethod', 'cash')
+            ->set('paymentCurrency', 'USD')
+            ->set('paymentAmount', 20.00)
+            ->call('addPayment')
+            ->call('Store')
+            ->assertHasNoErrors();
+
+        $latestSale = Sale::latest('id')->first();
+        $this->assertNotNull($latestSale);
+        $this->assertFalse((bool) $latestSale->is_fiscal);
+        $this->assertNull($latestSale->fiscal_number);
     }
 }

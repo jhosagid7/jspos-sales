@@ -61,14 +61,16 @@
                                 <div><b>Cliente:</b> {{ $salesObt->customer->name ?? 'N/A' }}</div>
                                 <div>
                                     <b>Folio:</b> {{ $salesObt->invoice_number ?? 'N/A' }}
-                                    @if($salesObt->fiscal_number)
-                                        <span class="badge bg-primary text-white ms-2" title="Factura Fiscal Forma Libre (Talonario #{{ $salesObt->fiscal_number }})">
-                                            <i class="fas fa-file-invoice me-1"></i>FAC: {{ $salesObt->fiscal_number }}
-                                        </span>
-                                    @elseif($salesObt->is_fiscal)
-                                        <span class="badge bg-info text-white ms-2" title="Factura Fiscal">
-                                            <i class="fas fa-file-invoice me-1"></i>FISCAL
-                                        </span>
+                                    @if(\App\Services\ConfigurationService::isFormaLibreEnabled())
+                                        @if($salesObt->fiscal_number)
+                                            <span class="badge bg-primary text-white ms-2" title="Factura Fiscal Forma Libre (Talonario #{{ $salesObt->fiscal_number }})">
+                                                <i class="fas fa-file-invoice me-1"></i>FAC: {{ $salesObt->fiscal_number }}
+                                            </span>
+                                        @elseif($salesObt->is_fiscal)
+                                            <span class="badge bg-info text-white ms-2" title="Factura Fiscal">
+                                                <i class="fas fa-file-invoice me-1"></i>FISCAL
+                                            </span>
+                                        @endif
                                     @endif
                                 </div>
                                 <div><b>Fecha:</b> {{ $salesObt->created_at->format('d/m/Y h:i A') }}</div>
@@ -850,7 +852,7 @@
                         <div class="d-flex flex-wrap gap-2 align-items-center mb-1">
                             <small class="text-muted fw-bold me-1">FACTURAS CLIENTE:</small>
 
-                            @if(optional($salesObt)->fiscal_number || optional($salesObt)->is_fiscal)
+                            @if(\App\Services\ConfigurationService::isFormaLibreEnabled() && (optional($salesObt)->fiscal_number || optional($salesObt)->is_fiscal))
                                 <a class="btn btn-sm btn-outline-success {{ $sale_status == 'returned' ? 'disabled' : '' }}"
                                    href="{{ route('pos.sales.generatePdfFormaLibre', ['sale' => $sale_id, 'preview' => 1]) }}" target="_blank"
                                    title="Visualizar en pantalla con la hoja membretada de fondo">

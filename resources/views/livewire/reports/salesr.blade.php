@@ -453,14 +453,16 @@
                                         <td>
                                             <div class="d-flex flex-column align-items-center justify-content-center">
                                                 <span class="font-weight-bold">{{ $sale->invoice_number ?? $sale->id }}</span>
-                                                @if($sale->fiscal_number)
-                                                    <span class="badge badge-primary text-white mt-1" style="font-size: 0.72rem; padding: 2px 6px;" title="Factura Fiscal Forma Libre (Talonario #{{ $sale->fiscal_number }})">
-                                                        <i class="fas fa-file-invoice me-1"></i>FAC: {{ $sale->fiscal_number }}
-                                                    </span>
-                                                @elseif($sale->is_fiscal)
-                                                    <span class="badge badge-info text-white mt-1" style="font-size: 0.72rem; padding: 2px 6px;" title="Factura Fiscal">
-                                                        <i class="fas fa-file-invoice me-1"></i>FISCAL
-                                                    </span>
+                                                @if(\App\Services\ConfigurationService::isFormaLibreEnabled())
+                                                    @if($sale->fiscal_number)
+                                                        <span class="badge badge-primary text-white mt-1" style="font-size: 0.72rem; padding: 2px 6px;" title="Factura Fiscal Forma Libre (Talonario #{{ $sale->fiscal_number }})">
+                                                            <i class="fas fa-file-invoice me-1"></i>FAC: {{ $sale->fiscal_number }}
+                                                        </span>
+                                                    @elseif($sale->is_fiscal)
+                                                        <span class="badge badge-info text-white mt-1" style="font-size: 0.72rem; padding: 2px 6px;" title="Factura Fiscal">
+                                                            <i class="fas fa-file-invoice me-1"></i>FISCAL
+                                                        </span>
+                                                    @endif
                                                 @endif
                                             </div>
                                             @foreach ($sale->returns as $return)
@@ -636,7 +638,7 @@
                                                 </a>
                                             @endif
 
-                                            @if($sale->fiscal_number || $sale->is_fiscal)
+                                            @if(\App\Services\ConfigurationService::isFormaLibreEnabled() && ($sale->fiscal_number || $sale->is_fiscal))
                                                 <a class="border-0 btn btn-outline-dark btn-xs link-offset-2 link-underline link-underline-opacity-0 {{ $sale->status == 'returned' ? 'disabled' : '' }}"
                                                     href="{{ route('pos.sales.generatePdfFormaLibre', ['sale' => $sale->id, 'preview' => 1]) }}"
                                                     target="_blank" title="Vista Previa en Pantalla (con Fondo Membretado)">

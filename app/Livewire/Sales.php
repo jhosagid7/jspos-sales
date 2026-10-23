@@ -4270,9 +4270,10 @@ class Sales extends Component
         }
 
         // Validaciones de Documento Fiscal / Forma Libre
+        $formaLibreEnabled = ConfigurationService::isFormaLibreEnabled();
         $docType = $this->document_type ?: 'invoice';
-        $fiscalNum = trim($this->fiscal_number ?? '');
-        $isFiscal = ($docType === 'invoice');
+        $fiscalNum = $formaLibreEnabled ? trim($this->fiscal_number ?? '') : null;
+        $isFiscal = $formaLibreEnabled && ($docType === 'invoice') && !empty($fiscalNum);
 
         if ($isFiscal && !empty($fiscalNum)) {
             $existsFiscal = Sale::where('fiscal_number', $fiscalNum)
@@ -4524,9 +4525,10 @@ class Sales extends Component
             }
 
             // Validaciones de Documento Fiscal / Forma Libre
+            $formaLibreEnabled = ConfigurationService::isFormaLibreEnabled();
             $docType = $this->document_type ?: 'invoice';
-            $fiscalNum = trim($this->fiscal_number ?? '');
-            $isFiscal = ($docType === 'invoice');
+            $fiscalNum = $formaLibreEnabled ? trim($this->fiscal_number ?? '') : null;
+            $isFiscal = $formaLibreEnabled && ($docType === 'invoice') && !empty($fiscalNum);
 
             if ($isFiscal && !empty($fiscalNum)) {
                 // Verificar que no se repita el número fiscal en otra venta distinta

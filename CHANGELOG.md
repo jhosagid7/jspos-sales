@@ -1,3 +1,20 @@
+## [1.10.468] - 2026-10-23
+
+### Fixed (Control de Visibilidad de Facturación Fiscal en Forma Libre)
+- **Condicionamiento de Elementos Fiscales a Configuración Activa**:
+  - `Sales.php`: Corregida la asignación de comprobantes en el proceso de cobro para que instalaciones con Forma Libre desactivada (`ConfigurationService::isFormaLibreEnabled() == false`) nunca guarden ventas como `is_fiscal = true` ni registren folios fiscales.
+  - `salesr.blade.php`: Los distintivos azules `[FISCAL]`, los folios `FAC: #` y los botones de vista previa membretada e impresión en talonario físico ahora solo se renderizan si la opción de Forma Libre está activa en el sistema.
+  - `sale-detail.blade.php` y `seller-grouped-report.blade.php`: Blindados los encabezados y botones de acciones fiscales en el modal de detalle de venta y reporte agrupado por vendedor bajo la misma bandera de configuración.
+  - `FormaLibreConfigurationTest.php`: Agregadas pruebas de regresión automáticas para validar que cuando el switch esté apagado, las ventas no registren estatus fiscal y los reportes permanezcan limpios sin botones ni distintivos fiscales.
+
+### Added & Enhanced (Sincronización VPS, Rutas de Despacho y Logística)
+- **Gestión de Rutas de Despacho**:
+  - `DispatchRoutesManager.php`: Componente Livewire y migración para administración de rutas de despacho asignadas a clientes y pedidos.
+  - `Customer.php`: Selector de ruta de despacho preferida para agilizar la logística de distribución.
+- **Sincronización Bidireccional con Portal VPS**:
+  - `VpsSyncService.php`: Comando `vps:sync` y sincronización automática de pedidos y usuarios Super Admin entre el POS local y el portal web.
+  - Notificaciones en tiempo real al portal web cuando una orden se revierte a borrador (`revertToDraft`) y alertas visuales de edición solicitada en el modal de órdenes.
+
 ## [1.10.467] - 2026-10-19
 
 ### Added & Enhanced (Control de Visibilidad y Permisos para Menú Catálogo PDF)

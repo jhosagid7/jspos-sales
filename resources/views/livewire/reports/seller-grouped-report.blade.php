@@ -443,7 +443,7 @@
                                                                             <tr>
                                                                                 <td class="font-weight-bold text-primary">
                                                                                     #{{ $invObj->invoice_number ?: $invObj->id }}
-                                                                                    @if(!empty($invObj->fiscal_number))
+                                                                                    @if(\App\Services\ConfigurationService::isFormaLibreEnabled() && !empty($invObj->fiscal_number))
                                                                                         <br><span class="badge badge-primary text-white" style="font-size: 0.68rem;" title="Factura Fiscal Forma Libre (Talonario #{{ $invObj->fiscal_number }})"><i class="fas fa-file-invoice me-1"></i>FAC: {{ $invObj->fiscal_number }}</span>
                                                                                     @endif
                                                                                 </td>
@@ -452,7 +452,7 @@
                                                                                 <td class="text-right font-weight-bold text-success">${{ number_format($tUsd, 2) }}</td>
                                                                                 <td class="text-center">
                                                                                     <div class="d-flex justify-content-center gap-1">
-                                                                                        @if(!empty($invObj->fiscal_number) || !empty($invObj->is_fiscal))
+                                                                                        @if(\App\Services\ConfigurationService::isFormaLibreEnabled() && (!empty($invObj->fiscal_number) || !empty($invObj->is_fiscal)))
                                                                                             <a href="{{ route('pos.sales.generatePdfFormaLibre', ['sale' => $invObj->id, 'preview' => 1]) }}" target="_blank" class="btn btn-outline-success btn-xs" title="Vista Previa en Pantalla (con Fondo Membretado)">
                                                                                                 <i class="fas fa-eye"></i>
                                                                                             </a>
@@ -547,7 +547,7 @@
                                             <tr>
                                                 <td class="font-weight-bold text-primary">
                                                     #{{ $invObj->invoice_number ?: $invObj->id }}
-                                                    @if(!empty($invObj->fiscal_number))
+                                                    @if(\App\Services\ConfigurationService::isFormaLibreEnabled() && !empty($invObj->fiscal_number))
                                                         <br><span class="badge badge-primary text-white" style="font-size: 0.68rem;" title="Factura Fiscal Forma Libre (Talonario #{{ $invObj->fiscal_number }})"><i class="fas fa-file-invoice me-1"></i>FAC: {{ $invObj->fiscal_number }}</span>
                                                     @endif
                                                 </td>
@@ -561,7 +561,7 @@
                                                 </td>
                                                 <td class="text-center">
                                                     <div class="d-flex justify-content-center gap-1">
-                                                        @if(!empty($invObj->fiscal_number) || !empty($invObj->is_fiscal))
+                                                        @if(\App\Services\ConfigurationService::isFormaLibreEnabled() && (!empty($invObj->fiscal_number) || !empty($invObj->is_fiscal)))
                                                             <a href="{{ route('pos.sales.generatePdfFormaLibre', ['sale' => $invObj->id, 'preview' => 1]) }}" target="_blank" class="btn btn-outline-success btn-xs" title="Vista Previa en Pantalla (con Fondo Membretado)">
                                                                 <i class="fas fa-eye"></i>
                                                             </a>
