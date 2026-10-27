@@ -124,8 +124,14 @@
                 </div>
 
                 <div class="col-md-12 mb-3">
-                    <div class="alert alert-info">
-                        <i class="fas fa-magic"></i> <b>Mapeo Inteligente:</b> Hemos intentado conectar tus columnas automáticamente. Por favor verifica que los campos sean correctos.
+                    <div class="alert alert-info d-flex align-items-center">
+                        <i class="fas fa-magic fa-2x me-3 text-primary"></i>
+                        <div>
+                            <b>Mapeo Inteligente de Columnas:</b> Hemos conectado automáticamente tus columnas.
+                            <div class="small text-muted mt-1">
+                                Las planillas anteriores con un solo precio y las nuevas con múltiples precios (<i>Precio 2</i>, <i>Precio 3</i>, etc.) son 100% compatibles. Verifica que los campos coincidan antes de importar.
+                            </div>
+                        </div>
                     </div>
                 </div>
 

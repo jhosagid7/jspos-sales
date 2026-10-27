@@ -14,7 +14,7 @@ class ProductsExport implements FromCollection, WithHeadings, WithMapping, Shoul
 {
     public function collection()
     {
-        return Product::with('category')
+        return Product::with(['category', 'priceList'])
             ->orderBy('name')
             ->get();
     }
@@ -25,7 +25,9 @@ class ProductsExport implements FromCollection, WithHeadings, WithMapping, Shoul
             'Nombre',
             'Código de Barras / SKU',
             'Categoría',
-            'Precio de Venta',
+            'Precio de Venta (Principal)',
+            'Precio 2',
+            'Precio 3',
             'Costo de Compra',
             'Stock',
             'Descripción',
@@ -37,11 +39,17 @@ class ProductsExport implements FromCollection, WithHeadings, WithMapping, Shoul
      */
     public function map($product): array
     {
+        $additionalPrices = $product->priceList ? $product->priceList->pluck('price')->values() : collect();
+        $price2 = isset($additionalPrices[0]) ? number_format((float)$additionalPrices[0], 2, '.', '') : '';
+        $price3 = isset($additionalPrices[1]) ? number_format((float)$additionalPrices[1], 2, '.', '') : '';
+
         return [
             $product->name,
             $product->sku,
             $product->category?->name ?? 'General',
             number_format((float)$product->price, 2, '.', ''),
+            $price2,
+            $price3,
             number_format((float)$product->cost, 2, '.', ''),
             $product->stock_qty,
             $product->description ?? '',
