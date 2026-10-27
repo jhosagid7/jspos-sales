@@ -1,3 +1,23 @@
+## [1.10.470] - 2026-10-27
+
+### Added & Enhanced (Control de Visibilidad y Switch para Módulo de Taller Automotriz)
+- **Módulo de Taller Apagado por Defecto**:
+  - `configurations`: Creada migración `add_enable_workshop_to_configurations_table` con columna booleana `enable_workshop` (por defecto `false`), garantizando que tiendas y comercios estándar no visualicen opciones de taller tras actualizar.
+  - `AppServiceProvider.php`: Eliminado bypass ciego de `Super Admin` en la directiva `@addon('workshop')`, haciendo que evalúe estrictamente si la empresa tiene el módulo activado.
+  - `Settings.php` y `settings.blade.php`: Incorporado interruptor en Configuración General (Pestaña 1) y en el panel de Anulaciones Locales (Pestaña 13) para activar o desactivar el módulo de Taller Automotriz a conveniencia.
+  - `ShortcutService.php`: Registrados los accesos de Órdenes de Trabajo, Historial de Vehículos y Comisiones de Mecánicos en el catálogo con validación de add-on y control granular de menús por usuario (`/settings/user-menus`).
+  - `customers/form.blade.php`: Pestaña "Vehículos / Flota" blindada bajo `@addon('workshop')` para ocultarse completamente cuando el módulo está inactivo.
+  - `routes/web.php` & `PlanAccessMiddleware.php`: Rutas de taller (`workshop/*`) protegidas bajo middleware `plan:addon,workshop` con redirección preventiva si el módulo no está activo.
+- **Pruebas Automatizadas (TDD)**:
+  - `WorkshopConfigurationToggleTest.php`: Cobertura completa de verificación de visibilidad en menú lateral, ficha de clientes, protección de rutas y persistencia del switch de configuración.
+
+### Enhanced (Soporte Multi-Precio y Decimales en Importación/Exportación de Productos)
+- **Gestión Avanzada de Precios y Stock en Excel/CSV**:
+  - `ProductsExport.php` & `ProductsTemplateExport.php`: Incorporación de columnas para Precio 2 y Precio 3 en plantillas y exportación oficial de productos.
+  - `ProductImport.php` & `product-import.blade.php`: Mapeo automático de precios adicionales (`PriceList`), soporte de stock con decimales para productos a granel/pesaje y compatibilidad retroactiva completa con formatos antiguos de un solo precio.
+- **Pruebas Automatizadas (TDD)**:
+  - `ProductImportTest.php`: Validaciones de mapeo multi-precio, persistencia de listas de precios y stock decimal.
+
 ## [1.10.469] - 2026-10-27
 
 ### Added (Creación Rápida Completa de Productos en Compras)
