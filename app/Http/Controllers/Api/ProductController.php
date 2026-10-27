@@ -16,9 +16,9 @@ class ProductController extends Controller
     {
         $search = $request->input('search');
         $user = $request->user();
-        $warehouseId = $user->warehouse_id ?? \App\Models\Configuration::first()->default_warehouse_id;
         $globalConfig = \App\Models\Configuration::first();
-        $checkReservation = $globalConfig->check_stock_reservation ?? false;
+        $warehouseId = $user?->warehouse_id ?? ($globalConfig?->default_warehouse_id ?? 1);
+        $checkReservation = $globalConfig?->check_stock_reservation ?? false;
 
         // Get Config (Customer specific or Seller fallback)
         $customerId = $request->input('customer_id');

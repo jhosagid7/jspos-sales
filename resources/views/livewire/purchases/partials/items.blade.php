@@ -1,15 +1,25 @@
 <div class="card shadow-sm border-0 mb-4" style="border-radius: 12px; overflow: hidden;">
     <div class="card-header bg-white border-bottom-0 py-4 px-4">
         <div class="row align-items-center">
-            <div class="col-sm-12 col-md-4">
+            <div class="col-sm-12 col-md-5">
                 <div class="d-flex align-items-center">
-                    <span class="text-muted small text-uppercase font-weight-bold mr-3" style="font-size: 0.65rem; white-space: nowrap;">Búsqueda</span>
+                    <span class="text-muted small text-uppercase font-weight-bold mr-2" style="font-size: 0.65rem; white-space: nowrap;">Búsqueda</span>
                     <div class="flex-grow-1">
                         <livewire:product-search />
                     </div>
+                    @can('products.create')
+                    <button type="button" 
+                            class="btn btn-primary ml-2 shadow-sm d-flex align-items-center text-nowrap" 
+                            data-toggle="modal" 
+                            data-target="#modalCreateProduct"
+                            style="border-radius: 8px; font-size: 0.75rem; padding: 0.45rem 0.75rem; height: 38px;" 
+                            title="Crear Nuevo Producto (Todas las Opciones)">
+                        <i class="fas fa-plus mr-1"></i> <span class="d-none d-lg-inline">Producto</span>
+                    </button>
+                    @endcan
                 </div>
             </div>
-            <div class="col-sm-12 col-md-4">
+            <div class="col-sm-12 col-md-3">
                 <div class="d-flex align-items-center" x-data="{
                     selectItem() {
                         const el = document.getElementById('inputClone');

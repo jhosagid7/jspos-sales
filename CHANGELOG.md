@@ -1,3 +1,26 @@
+## [1.10.469] - 2026-10-27
+
+### Added (Creación Rápida Completa de Productos en Compras)
+- **Nuevo Modal de Creación de Productos en Módulo de Compras**:
+  - `QuickCreateProduct.php` y `quick-create-product.blade.php`: Componente Livewire integrado en Compras con réplica exacta de la ficha oficial de productos (Información General, Categorización, Stock e Inventario, Precios y Escalas, Proveedores, Reglas y Galería).
+  - Eliminados campos innecesarios que no pertenecen al flujo estándar (`brand`, `presentation`).
+  - Sincronización en vivo y reactiva de cálculo comercial: Costo de Compra, Incremento (%), Margen de Ganancia (%) y Precio de Venta (USD).
+  - Al guardar, el producto se añade automáticamente al carrito de compras (`#[On('product-created')]` en `Purchases.php`) sin recargar la página.
+
+### Changed & Fixed (Unificación del Buscador de Compras a Arquitectura Nativa POS)
+- **Migración de Buscador en Compras a Livewire 3 + Alpine.js**:
+  - `ProductSearch.php` y `product-search.blade.php`: Reemplazado TomSelect por la arquitectura reactiva nativa del POS Ventas con `debounce.400ms`, dropdown flotante y navegación completa por teclado (flechas `↑`/`↓`, `Enter` para agregar y `Esc` para cancelar).
+  - Se eliminó el problema de congelamiento del input y la necesidad de recargar la página tras operaciones de Livewire.
+  - Atajo de teclado `[F2]` actualizado para limpiar y enfocar de forma instantánea el buscador nativo.
+
+### Enhanced & Fixed (API Pública de Catálogo de Productos y Reportes)
+- **Endpoint Público y Reportes Ejecutivos**:
+  - `ProductController.php` y `routes/api.php`: Incorporado endpoint seguro `/products-json` con null-safety para configuraciones y almacenes por defecto.
+  - Corrección de precisión en reportes ejecutivos mensuales y validación contra base de datos.
+- **Pruebas Automatizadas (TDD)**:
+  - `PurchaseProductCreationTest.php`: Cobertura completa de creación rápida de producto, auto-inclusión al carrito de compra, búsqueda en autocompletado y selección de producto vía teclado en el nuevo buscador nativo.
+  - `ExecutiveGrowthReportTest.php` y `PublicProductApiTest.php`: Validaciones de regresión para reportes y endpoint JSON.
+
 ## [1.10.468] - 2026-10-23
 
 ### Fixed (Control de Visibilidad de Facturación Fiscal en Forma Libre)

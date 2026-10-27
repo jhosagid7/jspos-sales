@@ -3,10 +3,13 @@
     var inputSup
     var tomselect
     function resetProductSearch(){
-            const el = document.getElementById('inputSearchProduct')
-            var tomSel = el.tomselect
-            tomSel.clear()
-            tomSel.focus()  
+        const el = document.getElementById('inputSearchProduct');
+        if (el) {
+            el.value = '';
+            el.focus();
+            el.select();
+        }
+        Livewire.dispatch('clear-search');
     }
     function resetSupplierSearch(){
             const input = document.getElementById('inputSupplier')

@@ -25,6 +25,9 @@ Route::post('print', function (Request $request) {
     return '200 ok';
 });
 
+// Ruta API pública para ver catálogo de productos en formato JSON directamente desde el navegador
+Route::get('/products-json', [App\Http\Controllers\Api\ProductController::class, 'index']);
+
 // License Remote Synchronization Route
 Route::post('/license/push', [App\Http\Controllers\Api\LicenseReceiverController::class, 'push'])
     ->withoutMiddleware([\App\Http\Middleware\CheckDeviceAuthorization::class]);

@@ -16,6 +16,9 @@
                 @include('livewire.purchases.partials.ai-ocr-modal')
             @endmodule
             <livewire:purchase-partial-payment />
+            @can('products.create')
+                <livewire:quick-create-product />
+            @endcan
         </div>
 
         {{-- Sidebar Summary Section (Right) --}}

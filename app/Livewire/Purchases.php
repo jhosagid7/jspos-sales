@@ -313,8 +313,17 @@ class Purchases extends Component
     #[On('purchase_product')]
     function setProduct(Product $product)
     {
-
         $this->AddProduct($product);
+    }
+
+    #[On('product-created')]
+    public function onProductCreated($product)
+    {
+        $p = ($product instanceof Product) ? $product : Product::find($product);
+        if ($p) {
+            $this->AddProduct($p);
+            $this->dispatch('noty', msg: "PRODUCTO {$p->name} AGREGADO A LA COMPRA");
+        }
     }
 
 
