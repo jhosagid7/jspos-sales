@@ -140,10 +140,12 @@ Route::middleware('auth')->group(function () {
     Route::get('soplados/inventories', \App\Livewire\Soplados\SopladosInventoriesList::class)->name('soplados.inventories')->middleware(['can:production.index']);
     Route::get('soplados/expected-production', \App\Livewire\Soplados\ExpectedProductionList::class)->name('soplados.expected-production')->middleware(['can:production.index']);
     // Automotive Workshop Routes
-    Route::get('workshop/work-orders', \App\Livewire\Workshop\WorkOrders::class)->name('workshop.work-orders');
-    Route::get('workshop/work-orders/{order}/pdf', [\App\Http\Controllers\WorkshopController::class, 'pdf'])->name('workshop.work-orders.pdf');
-    Route::get('workshop/commissions', \App\Livewire\Workshop\MechanicCommissions::class)->name('workshop.commissions');
-    Route::get('workshop/vehicles/history', \App\Livewire\Workshop\VehicleHistory::class)->name('workshop.vehicles.history');
+    Route::group(['middleware' => ['plan:addon,workshop']], function() {
+        Route::get('workshop/work-orders', \App\Livewire\Workshop\WorkOrders::class)->name('workshop.work-orders');
+        Route::get('workshop/work-orders/{order}/pdf', [\App\Http\Controllers\WorkshopController::class, 'pdf'])->name('workshop.work-orders.pdf');
+        Route::get('workshop/commissions', \App\Livewire\Workshop\MechanicCommissions::class)->name('workshop.commissions');
+        Route::get('workshop/vehicles/history', \App\Livewire\Workshop\VehicleHistory::class)->name('workshop.vehicles.history');
+    });
 
     Route::get('descargos', \App\Livewire\Descargos\DescargosList::class)->name('descargos')->middleware('can:adjustments.create');
     Route::get('descargos/create', \App\Livewire\Descargos\CreateDescargo::class)->name('descargos.create')->middleware('can:adjustments.create');

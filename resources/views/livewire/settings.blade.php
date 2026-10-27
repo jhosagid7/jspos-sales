@@ -449,6 +449,25 @@
                                         <small class="text-muted">Ajusta cómo se nombran los socios consignatarios en el módulo de liquidación FIFO.</small>
                                     </div>
 
+                                    <div class="col-12 mt-3">
+                                        <h6 class="text-primary font-weight-bold"><i class="fas fa-cubes mr-1"></i> MÓDULOS ESPECIALES / ADD-ONS</h6>
+                                        <hr class="mt-1 mb-2">
+                                    </div>
+
+                                    <div class="col-sm-12 col-md-12">
+                                        <div class="form-check form-switch pl-0">
+                                            <div class="custom-control custom-switch">
+                                                <input type="checkbox" class="custom-control-input" id="enableWorkshopSwitch" wire:model.live="enableWorkshop">
+                                                <label class="custom-control-label font-weight-bold text-dark" for="enableWorkshopSwitch">
+                                                    <i class="fas fa-wrench text-warning me-1"></i> Habilitar Módulo de Taller Automotriz (Órdenes de Trabajo, Vehículos y Mecánicos)
+                                                </label>
+                                            </div>
+                                            <small class="text-muted d-block mt-1">
+                                                Mantener desactivado para comercios estándar (víveres, tiendas o repuestos generales). Si se activa, mostrará en el menú lateral la gestión de Taller Automotriz, órdenes de servicio y registro de vehículos en clientes.
+                                            </small>
+                                        </div>
+                                    </div>
+
                                     <div class="col-12 mt-4">
                                         <button class="btn btn-primary" wire:click.prevent="saveConfig" wire:loading.attr="disabled">
                                             <span wire:loading.remove wire:target="saveConfig">Guardar Configuración</span>
@@ -1617,6 +1636,7 @@ Departamento de Control de Calidad y Manufactura
                                             'module_collection_audit' => 'Auditoría de Cobranza',
                                             'module_invoice_audit' => 'Auditoría de Facturas',
                                             'module_credit_auth_history' => 'Historial Auth Créditos',
+                                            'workshop' => 'Taller Automotriz (Órdenes de Trabajo y Vehículos)',
                                             'module_ai_invoice_ocr' => 'IA: Carga de Facturas y Compras (OCR Visión)',
                                             'module_ai_copilot' => 'IA: Copiloto Financiero y Asistente',
                                             'module_ai_inventory_forecast' => 'IA: Predicción de Stock y Compras',

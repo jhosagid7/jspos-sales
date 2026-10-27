@@ -14,6 +14,7 @@ class Configuration extends Model
     protected $fillable = [
         'plan_type',
         'addon_modules',
+        'enable_workshop',
         'enable_forma_libre',
         'forma_libre_template',
         'business_name',
@@ -127,6 +128,7 @@ class Configuration extends Model
     ];
 
     protected $casts = [
+        'enable_workshop' => 'boolean',
         'enable_forma_libre' => 'boolean',
         'multicurrency_enabled' => 'boolean',
         'ai_settings' => 'array',
@@ -207,6 +209,11 @@ class Configuration extends Model
         // 1. Verificar si hay un override local que force habilitar o deshabilitar
         if (!empty($this->local_overrides) && isset($this->local_overrides[$addon])) {
             return (bool) $this->local_overrides[$addon];
+        }
+
+        // 1.02 Caso especial Taller Automotriz (Workshop)
+        if ($addon === 'workshop' || $addon === 'module_workshop') {
+            return (bool) ($this->enable_workshop ?? false);
         }
 
         // 1.05 Verificar si está en el array addon_modules

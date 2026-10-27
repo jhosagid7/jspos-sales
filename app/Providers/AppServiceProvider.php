@@ -113,13 +113,6 @@ class AppServiceProvider extends ServiceProvider
 
         // Registro de directiva Blade para Add-ons a la carta
         \Illuminate\Support\Facades\Blade::if('addon', function ($addonName) {
-            // Super Admin bypass: ve todos los add-ons
-            try {
-                if (auth()->check() && auth()->user()->hasRole('Super Admin')) {
-                    return true;
-                }
-            } catch (\Throwable $e) {}
-
             try {
                 $config = \App\Services\ConfigurationService::getConfig();
                 if ($config && method_exists($config, 'hasAddon')) {

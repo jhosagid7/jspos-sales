@@ -901,6 +901,43 @@ class ShortcutService
                 'category' => 'Administración & Sistema',
                 'color' => '#17a2b8',
             ],
+
+            // ==========================================
+            // TALLER AUTOMOTRIZ (ADDON)
+            // ==========================================
+            'workshop.work-orders' => [
+                'key' => 'workshop.work-orders',
+                'label' => 'Órdenes de Trabajo (Taller)',
+                'short_label' => 'Órdenes Taller',
+                'icon' => 'fas fa-wrench',
+                'route' => 'workshop.work-orders',
+                'permission' => 'sales.index',
+                'addon' => 'workshop',
+                'category' => 'Taller Automotriz',
+                'color' => '#ffc107',
+            ],
+            'workshop.vehicles.history' => [
+                'key' => 'workshop.vehicles.history',
+                'label' => 'Historial de Vehículos',
+                'short_label' => 'Historial Vehículos',
+                'icon' => 'fas fa-car',
+                'route' => 'workshop.vehicles.history',
+                'permission' => 'sales.index',
+                'addon' => 'workshop',
+                'category' => 'Taller Automotriz',
+                'color' => '#17a2b8',
+            ],
+            'workshop.commissions' => [
+                'key' => 'workshop.commissions',
+                'label' => 'Comisiones de Mecánicos',
+                'short_label' => 'Comisiones Mecánicos',
+                'icon' => 'fas fa-user-cog',
+                'route' => 'workshop.commissions',
+                'permission' => 'sales.index',
+                'addon' => 'workshop',
+                'category' => 'Taller Automotriz',
+                'color' => '#28a745',
+            ],
         ];
     }
 
@@ -938,6 +975,18 @@ class ShortcutService
                 if (!in_array($item['module'], $tenantModules)) {
                     return false;
                 }
+            }
+        }
+
+        // 4.1 Validar addons si está definido
+        if (!empty($item['addon'])) {
+            $config = ConfigurationService::getConfig();
+            if ($config && method_exists($config, 'hasAddon')) {
+                if (!$config->hasAddon($item['addon'])) {
+                    return false;
+                }
+            } else {
+                return false;
             }
         }
 
@@ -1019,6 +1068,14 @@ class ShortcutService
         $item = $catalog[$menuKey] ?? null;
         if (!$item) {
             return false;
+        }
+
+        // Si el ítem requiere un add-on y este no está activo en la empresa, denegar para todos los usuarios
+        if (!empty($item['addon'])) {
+            $config = ConfigurationService::getConfig();
+            if (!$config || !method_exists($config, 'hasAddon') || !$config->hasAddon($item['addon'])) {
+                return false;
+            }
         }
 
         $theme = $user->theme;

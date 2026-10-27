@@ -26,6 +26,7 @@ class Settings extends Component
     public $discountRules = [];
     public $ticketSettings = []; // Configuración modular de tickets térmicos
     public $pdfSettings = []; // Configuración modular de facturas y documentos PDF
+    public $enableWorkshop = false; // Habilitar Módulo de Taller Automotriz
     public $enableFormaLibre = false; // Habilitar Facturación en Forma Libre
     public $formaLibreTemplate = 'bucaros'; // Plantilla de Forma Libre seleccionada
 
@@ -240,6 +241,9 @@ class Settings extends Component
                 }
             }
 
+            // Workshop Addon Settings
+            $this->enableWorkshop = (bool) ($config->enable_workshop ?? false);
+
             // Forma Libre Settings
             $this->enableFormaLibre = (bool) ($config->enable_forma_libre ?? false);
             $this->formaLibreTemplate = $config->forma_libre_template ?? 'bucaros';
@@ -422,6 +426,7 @@ class Settings extends Component
                 'sequential_cut_off_date' => $this->sequentialCutOffDate ? \Carbon\Carbon::parse($this->sequentialCutOffDate)->format('Y-m-d H:i:s') : null,
                 'ticket_settings' => $this->ticketSettings,
                 'pdf_settings' => $this->pdfSettings,
+                'enable_workshop' => $this->enableWorkshop ? 1 : 0,
                 'enable_forma_libre' => $this->enableFormaLibre ? 1 : 0,
                 'forma_libre_template' => $this->formaLibreTemplate ?: 'bucaros',
                 'custom_labels' => array_merge(

@@ -31,6 +31,11 @@ class ConfigurationService
         return self::getConfig()?->sequential_cut_off_date ?? '2026-06-03 00:00:00';
     }
 
+    public static function isWorkshopEnabled(): bool
+    {
+        return (bool) (self::getConfig()?->enable_workshop ?? false);
+    }
+
     public static function isFormaLibreEnabled(): bool
     {
         return (bool) (self::getConfig()?->enable_forma_libre ?? false);

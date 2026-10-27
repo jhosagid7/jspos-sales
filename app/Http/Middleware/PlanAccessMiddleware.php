@@ -17,6 +17,13 @@ class PlanAccessMiddleware
      */
     public function handle(Request $request, Closure $next, $type, $requirement): Response
     {
+        // El módulo de Taller Automotriz debe estar explícitamente habilitado en configuración
+        if ($type === 'addon' && in_array($requirement, ['workshop', 'module_workshop'])) {
+            if (!\App\Services\ConfigurationService::isWorkshopEnabled()) {
+                return redirect()->route('welcome')->with('error', 'El módulo de Taller Automotriz se encuentra desactivado. Puede activarlo en Configuración.');
+            }
+        }
+
         // Super Admin bypass: accede a todos los planes y add-ons
         if (auth()->check() && auth()->user()->hasRole('Super Admin')) {
             return $next($request);
