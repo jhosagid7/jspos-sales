@@ -628,7 +628,7 @@
                                                         </td>
                                                         <td>
                                                             <button class="btn btn-light btn-sm"
-                                                                wire:click.prevent="removeTempPrice({{ $item['id'] }})">
+                                                                wire:click.prevent="removeTempPrice('{{ $item['id'] }}')">
                                                                 <i class="fa fa-trash fa-2x"></i>
                                                             </button>
                                                         </td>

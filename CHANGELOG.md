@@ -1,3 +1,12 @@
+## [1.10.472] - 2026-10-28
+
+### Fixed (Acción de Eliminar Precios en Tabla de Precios Secundarios de Productos)
+- **Corrección de Sintaxis JavaScript en Botón de Papelera**:
+  - `products/form.blade.php`: Corregida la llamada `wire:click.prevent="removeTempPrice('{{ $item['id'] }}')"` agregando las comillas necesarias para evitar que los identificadores temporales UUID provoquen errores de sintaxis en el navegador.
+  - `Products.php`: Ajustado `removeTempPrice` para realizar comparación segura `(string)` entre IDs numéricos y UUIDs temporales.
+- **Pruebas Automatizadas (TDD)**:
+  - `ProductPriceListTest.php`: Agregada prueba de regresión para eliminación de precios por UUID y verificación de renderizado con comillas en HTML.
+
 ## [1.10.471] - 2026-10-28
 
 ### Fixed (Validación de Precios con Decimales en Ficha de Productos y Compras)

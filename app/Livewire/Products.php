@@ -311,7 +311,7 @@ class Products extends Component
     public function removeTempPrice($id)
     {
         $this->form->values = array_values(array_filter($this->form->values, function ($item) use ($id) {
-            return $item['id'] !== $id;
+            return (string)($item['id'] ?? '') !== (string)$id;
         }));
 
         // actualizar los valores en sesión después de eliminar

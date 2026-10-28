@@ -171,4 +171,39 @@ class ProductPriceListTest extends TestCase
 
         $this->assertCount(1, $component->get('form.values'));
     }
+
+    public function test_can_remove_price_by_uuid_and_renders_quoted_id_in_blade()
+    {
+        $product = Product::create([
+            'name' => 'BANDEJAS REMOVE TEST',
+            'sku' => 'BAN-004',
+            'cost' => 3.00,
+            'price' => 5.00,
+            'stock_qty' => 10,
+            'low_stock' => 2,
+            'category_id' => $this->category->id,
+            'supplier_id' => $this->supplier->id,
+        ]);
+
+        $component = Livewire::actingAs($this->user)
+            ->test(Products::class)
+            ->call('Edit', $product->id);
+
+        // Add 5.25 (generates a UUID id)
+        $component->set('form.value', '5.25')
+            ->call('storeTempPrice');
+
+        $values = $component->get('form.values');
+        $this->assertCount(1, $values);
+        $addedId = $values[0]['id'];
+
+        // Verify HTML renders with quotes around UUID
+        $component->assertSeeHtml("removeTempPrice('{$addedId}')");
+
+        // Remove the price
+        $component->call('removeTempPrice', $addedId)
+            ->assertDispatched('noty', msg: 'Precio eliminado correctamente');
+
+        $this->assertCount(0, $component->get('form.values'));
+    }
 }
