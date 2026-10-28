@@ -1,3 +1,13 @@
+## [1.10.471] - 2026-10-28
+
+### Fixed (Validación de Precios con Decimales en Ficha de Productos y Compras)
+- **Corrección de Expresión Regular para Precios Secundarios**:
+  - `Products.php` y `QuickCreateProduct.php`: Corregida la expresión regular en `storeTempPrice` (`^\d+(\.\d{1,4})?$`) para admitir de 1 a 4 decimales o números enteros (ej. `5.23`, `5.2`, `10.99`), eliminando la restricción que exigía erróneamente exactamente 4 dígitos decimales.
+  - Normalización automática de coma a punto decimal (`5,23` -> `5.23`) para compatibilidad fluida con teclados numéricos.
+  - Prevención de duplicados basada en comparación numérica de valores (`5.20` vs `5.2`).
+- **Pruebas Automatizadas (TDD)**:
+  - `ProductPriceListTest.php`: Cobertura completa para inserción con 1, 2, 3 y 4 decimales, formato con coma, prevención de duplicados y rechazo de valores inválidos.
+
 ## [1.10.470] - 2026-10-27
 
 ### Added & Enhanced (Control de Visibilidad y Switch para Módulo de Taller Automotriz)

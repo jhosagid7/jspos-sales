@@ -113,9 +113,11 @@ class QuickCreateProduct extends Component
     // Secondary price list management
     public function storeTempPrice()
     {
+        $cleanPrice = str_replace(',', '.', trim(strval($this->tempPrice)));
+
         $validator = validator(
-            ['price' => $this->tempPrice],
-            ['price' => ['required', 'numeric', 'min:0', 'regex:/^\d+(\.\d{1,4})?$/']]
+            ['price' => $cleanPrice],
+            ['price' => ['required', 'numeric', 'gt:0', 'regex:/^\d+(\.\d{1,4})?$/']]
         );
 
         if ($validator->fails()) {
@@ -123,8 +125,10 @@ class QuickCreateProduct extends Component
             return;
         }
 
-        $priceVal = (float)$this->tempPrice;
-        $existing = array_column($this->form->values, 'price');
+        $priceVal = (float)$cleanPrice;
+        $existing = array_map(function ($item) {
+            return (float)($item['price'] ?? 0);
+        }, $this->form->values);
 
         if (!in_array($priceVal, $existing)) {
             $this->form->values[] = [

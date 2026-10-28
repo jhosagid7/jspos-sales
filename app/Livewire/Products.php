@@ -271,10 +271,13 @@ class Products extends Component
 
     public function storeTempPrice()
     {
-        // validar que el valor sea un número positivo con un máximo de un decimal
+        // Limpiar y normalizar posibles comas a puntos decimales
+        $cleanPrice = str_replace(',', '.', trim(strval($this->form->value)));
+
+        // Validar que el valor sea un número positivo mayor a cero con un máximo de cuatro decimales (de 1 a 4 decimales o entero)
         $validator = validator(
-            ['price' => $this->form->value],
-            ['price' => ['required', 'numeric', 'min:0', 'regex:/^\d+(\.\d{4})?$/']]
+            ['price' => $cleanPrice],
+            ['price' => ['required', 'numeric', 'gt:0', 'regex:/^\d+(\.\d{1,4})?$/']]
         );
 
         if ($validator->fails()) {
@@ -283,13 +286,18 @@ class Products extends Component
             return;
         }
 
+        $numericPrice = floatval($cleanPrice);
 
-        // validar que el valor no esté repetido
-        if (!in_array($this->form->value, array_column($this->form->values, 'price'))) {
+        // Validar que el valor no esté repetido (comparando numéricamente para evitar que 5.20 y 5.2 choquen o se dupliquen)
+        $existingPrices = array_map(function ($item) {
+            return floatval($item['price'] ?? 0);
+        }, $this->form->values);
+
+        if (!in_array($numericPrice, $existingPrices)) {
             $newId = Str::uuid()->toString();
             $this->form->values[] = [
                 'id' => $newId, 
-                'price' => $this->form->value
+                'price' => $cleanPrice
             ];
             $this->form->value = ''; // limpiar property después de agregar
             session(['values' => $this->form->values]); // Guardar los valores en sesión
