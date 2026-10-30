@@ -50,6 +50,8 @@ class Sales extends Component
 
     public $cart;
     public $taxCart = 0, $itemsCart, $subtotalCart = 0, $totalCart = 0, $ivaCart = 0;
+    public $discount_percentage = 0;
+    public $salesShowDiscountPercentage = false;
 
     public $config, $customer, $iva = 0;
     public $sellerConfig = null; // Store active seller config
@@ -1027,6 +1029,7 @@ class Sales extends Component
         $this->config = ConfigurationService::getConfig();
         $this->decimalPlaces = ConfigurationService::getDecimalPlaces();
         $this->isMulticurrency = $this->config ? $this->config->isMulticurrency() : true;
+        $this->salesShowDiscountPercentage = (bool) ($this->config->sales_show_discount_percentage ?? false);
         $this->enableFormaLibre = ConfigurationService::isFormaLibreEnabled();
         $this->formaLibreTemplate = ConfigurationService::getFormaLibreTemplate();
         
@@ -1734,7 +1737,7 @@ class Sales extends Component
             'canSwitchWarehouse', 'moduleMultiWarehouse', 'moduleCredits', 
             'moduleAdvancedPayments', 'drivers', 'sellers', 'currencies',
             'isSharedTerminal', 'availableOperators', 'isMulticurrency',
-            'enableFormaLibre', 'formaLibreTemplate'
+            'enableFormaLibre', 'formaLibreTemplate', 'salesShowDiscountPercentage'
         );
         $this->clear();
         session()->forget('sale_customer');
@@ -1750,6 +1753,12 @@ class Sales extends Component
         $this->driver_id = $order->driver_id;
         $this->paymentAgreement = $order->payment_agreement ?? 'USD';
         $this->order_notes = $order->notes;
+        
+        if ($order->metadata && is_array($order->metadata) && isset($order->metadata['discount_percentage'])) {
+            $this->discount_percentage = floatval($order->metadata['discount_percentage']);
+        } else {
+            $this->discount_percentage = 0;
+        }
         
         // Restore configuration from order
         $this->applyCommissions = (bool) $order->apply_commissions;
@@ -1932,6 +1941,12 @@ class Sales extends Component
             }
             $this->is_freight_broken_down = (bool) ($sale->is_freight_broken_down ?? false);
             $this->paymentAgreement = $sale->payment_agreement ?? 'USD';
+
+            if ($sale->metadata && is_array($sale->metadata) && isset($sale->metadata['discount_percentage'])) {
+                $this->discount_percentage = floatval($sale->metadata['discount_percentage']);
+            } else {
+                $this->discount_percentage = 0;
+            }
             
             if ($sale->seller_config_id) {
                 $this->sellerConfig = \App\Models\SellerConfig::find($sale->seller_config_id);
@@ -3294,6 +3309,7 @@ class Sales extends Component
         }
 
         $this->cart = new Collection;
+        $this->discount_percentage = 0;
         $this->driver_id = null;
         $this->selected_operator_id = null;
         $this->payments = [];
@@ -3394,7 +3410,7 @@ class Sales extends Component
         return round($iva, $decimals);
     }
 
-    public function totalCart()
+    public function getGrossTotalCartProperty()
     {
         $decimals = ConfigurationService::getDecimalPlaces();
         
@@ -3407,6 +3423,43 @@ class Sales extends Component
         }
 
         return round($total, $decimals);
+    }
+
+    public function getDiscountAmountPrimaryProperty()
+    {
+        $decimals = ConfigurationService::getDecimalPlaces();
+        $discountPercent = $this->salesShowDiscountPercentage ? min(100, max(0, floatval($this->discount_percentage))) : 0;
+        if ($discountPercent <= 0) {
+            return 0;
+        }
+        return round($this->grossTotalCart * ($discountPercent / 100), $decimals);
+    }
+
+    public function getDisplayDiscountAmountProperty()
+    {
+        $decimals = ConfigurationService::getDecimalPlaces();
+        return round($this->discountAmountPrimary * $this->getConversionFactor(), $decimals);
+    }
+
+    public function totalCart()
+    {
+        $decimals = ConfigurationService::getDecimalPlaces();
+        $grossTotal = $this->grossTotalCart;
+        $discountAmount = $this->discountAmountPrimary;
+
+        return round(max(0, $grossTotal - $discountAmount), $decimals);
+    }
+
+    public function updatedDiscountPercentage($val)
+    {
+        $this->discount_percentage = min(100, max(0, floatval($val)));
+        $decimals = ConfigurationService::getDecimalPlaces();
+        $this->totalCart = round($this->totalCart(), $decimals);
+        if (session()->has('totalCartAtPayment')) {
+            $this->totalCartAtPayment = round($this->totalCart * $this->getConversionFactor(), $decimals);
+            session(['totalCartAtPayment' => $this->totalCartAtPayment]);
+        }
+        $this->calculateRemainingAndChange();
     }
 
     public function calculateCalculatedFreight() {
@@ -4543,11 +4596,28 @@ class Sales extends Component
                 }
             }
 
+            $discountPercent = $this->salesShowDiscountPercentage ? min(100, max(0, floatval($this->discount_percentage))) : 0;
+            $discountAmountPrimary = $this->discountAmountPrimary;
+            $discountAmountInvoice = round($discountAmountPrimary * $conversionFactor, $decimals);
+            $subtotalBeforeDiscountInvoice = round($this->grossTotalCart * $conversionFactor, $decimals);
+
+            $saleMetadata = null;
+            if ($discountPercent > 0) {
+                $saleMetadata = [
+                    'discount_percentage' => $discountPercent,
+                    'discount_amount' => $discountAmountInvoice,
+                    'discount_amount_primary' => $discountAmountPrimary,
+                    'subtotal_before_discount' => $subtotalBeforeDiscountInvoice,
+                    'subtotal_before_discount_primary' => $this->grossTotalCart,
+                ];
+            }
+
             $saleData = [
                 'seller_config_id' => $sellerConfigId,
                 'total' => $totalInInvoiceCurrency,
                 'total_usd' => round($totalUSD, $decimals),
-                'discount' => 0,
+                'discount' => $discountAmountInvoice,
+                'metadata' => $saleMetadata,
                 'items' => $this->itemsCart,
                 'customer_id' => $this->customer['id'],
                 'user_id' => $this->getEffectiveUserId(),
@@ -5228,6 +5298,16 @@ class Sales extends Component
                 $agreementToSave = ($appliedDiff > 0) ? 'BCV' : 'USD';
             }
 
+            $discountPercent = $this->salesShowDiscountPercentage ? min(100, max(0, floatval($this->discount_percentage))) : 0;
+            $orderMetadata = null;
+            if ($discountPercent > 0) {
+                $orderMetadata = [
+                    'discount_percentage' => $discountPercent,
+                    'discount_amount' => $this->discountAmountPrimary,
+                    'subtotal_before_discount' => $this->grossTotalCart,
+                ];
+            }
+
             if ($this->order_id) {
                 // Actualiza la orden existente
                 $order = Order::find($this->order_id);
@@ -5235,7 +5315,8 @@ class Sales extends Component
                 if ($order) {
                     $updateData = [
                         'total' => round($this->totalCart, $decimals),
-                        'discount' => 0,
+                        'discount' => $this->discountAmountPrimary,
+                        'metadata' => $orderMetadata,
                         'items' => $this->itemsCart,
                         'customer_id' => $this->customer['id'],
                         // 'user_id' => Auth()->user()->id, // DO NOT OVERWRITE OWNER
@@ -5354,7 +5435,8 @@ class Sales extends Component
                 $order = Order::create([
                     'order_number' => $orderNumber,
                     'total' => round($this->totalCart, $decimals),
-                    'discount' => 0,
+                    'discount' => $this->discountAmountPrimary,
+                    'metadata' => $orderMetadata,
                     'items' => $this->itemsCart,
                     'customer_id' => $this->customer['id'],
                     'user_id' => $this->getEffectiveUserId(),
@@ -5456,6 +5538,7 @@ class Sales extends Component
             Log::info('Después de guardar la orden:', $this->currencies->toArray());
         } catch (\Exception $th) {
             DB::rollBack();
+            Log::error("Error al intentar guardar la orden: " . $th->getMessage() . "\n" . $th->getTraceAsString());
             $this->dispatch('noty', msg: "Error al intentar guardar la orden \n {$th->getMessage()}");
         }
     }

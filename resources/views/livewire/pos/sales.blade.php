@@ -424,6 +424,27 @@
                                 </tr>
                                 @endif
                             @endif
+                            @if($salesShowDiscountPercentage ?? false)
+                            <tr class="border-bottom">
+                                <td class="text-muted align-middle">Descuento (%):</td>
+                                <td class="text-right">
+                                    <div class="input-group input-group-sm justify-content-end">
+                                        <input type="number" step="0.01" min="0" max="100" class="form-control form-control-sm text-right" 
+                                            wire:model.live.debounce.300ms="discount_percentage" 
+                                            placeholder="0"
+                                            style="max-width: 80px;">
+                                        <div class="input-group-append">
+                                            <span class="input-group-text p-1">%</span>
+                                        </div>
+                                    </div>
+                                    @if(floatval($discount_percentage) > 0)
+                                        <small class="text-success font-weight-bold d-block mt-1">
+                                            -{{ $displayCurrency ? $displayCurrency->symbol : '$' }}{{ formatMoney($this->displayDiscountAmount) }}
+                                        </small>
+                                    @endif
+                                </td>
+                            </tr>
+                            @endif
                             <tr>
                                 <td class="h5 font-weight-bold">TOTAL:</td>
                                 <td class="h5 font-weight-bold text-primary text-right">

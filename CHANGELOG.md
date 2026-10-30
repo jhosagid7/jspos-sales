@@ -1,3 +1,19 @@
+## [1.10.473] - 2026-10-30
+
+### Added & Enhanced (Descuento Porcentual en Ventas con Persistencia en Metadatos y Switch Configurable)
+- **Descuento Porcentual en Pantalla de Ventas (POS)**:
+  - `Sales.php` y `sales.blade.php`: Incorporado campo interactivo `Descuento (%)` ubicado sobre el Total del carrito para aplicar descuentos porcentuales al monto total de la venta (ej. 10% sobre 10,000 pasa el total a 9,000).
+  - Cálculo dinámico reactivo: actualiza subtotal, monto descontado en tiempo real y monto neto a pagar.
+  - El descuento no modifica el diseño del ticket/recibo impreso del cliente, manteniendo el total final neto.
+  - Registro estructurado de metadatos: la venta (`Sale`) y órdenes pendientes (`Order`) guardan en la columna `metadata` el desglose completo (`discount_percentage`, `discount_amount`, `subtotal_before_discount`).
+  - Compatibilidad con órdenes guardadas: soporte para almacenar y restaurar el porcentaje de descuento al recargar órdenes pendientes al carrito.
+- **Switch de Visibilidad en Configuración**:
+  - `configurations`: Creada migración `add_discount_percentage_and_metadata_to_sales` con columna booleana `sales_show_discount_percentage` (por defecto `false` - deshabilitado) y columna `metadata` en `sales` y `orders`.
+  - `Settings.php` y `settings.blade.php`: Incorporado interruptor en Configuración de Ventas (Pestaña 2) para encender/apagar la visibilidad del campo de descuento a conveniencia del administrador.
+  - `UpdateService.php`: Integración de verificación y auto-migración preventiva (self-healing) para clientes que actualizan sin intervención manual.
+- **Pruebas Automatizadas (TDD)**:
+  - `SalesDiscountPercentageTest.php`: Cobertura completa del switch en configuración, ocultación/visibilidad condicional, cálculo reactivo del carrito, persistencia de metadatos en ventas y guardado/restauración en órdenes pendientes.
+
 ## [1.10.472] - 2026-10-28
 
 ### Fixed (Acción de Eliminar Precios en Tabla de Precios Secundarios de Productos)

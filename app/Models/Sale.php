@@ -27,6 +27,7 @@ class Sale extends Model
         'cash',
         'change',
         'notes',
+        'metadata',
         'primary_currency_code',
         'primary_exchange_rate',
         'invoice_number',
@@ -97,6 +98,7 @@ class Sale extends Model
         'base_markup_amount' => 'decimal:4',
         'is_audited' => 'boolean',
         'audited_at' => 'datetime',
+        'metadata' => 'array',
     ];
 
     function details()

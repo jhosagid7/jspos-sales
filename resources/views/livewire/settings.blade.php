@@ -546,6 +546,10 @@
                                                 <input type="checkbox" class="custom-control-input" id="salesShowBreakdownFreight" wire:model="salesShowBreakdownFreight">
                                                 <label class="custom-control-label" for="salesShowBreakdownFreight">Mostrar control "Desglosar Flete"</label>
                                             </div>
+                                            <div class="custom-control custom-switch mt-2">
+                                                <input type="checkbox" class="custom-control-input" id="salesShowDiscountPercentage" wire:model="salesShowDiscountPercentage">
+                                                <label class="custom-control-label" for="salesShowDiscountPercentage">Mostrar campo "Porcentaje de Descuento" en ventas</label>
+                                            </div>
                                         </div>
                                     </div>
                                     

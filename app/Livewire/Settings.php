@@ -15,7 +15,7 @@ class Settings extends Component
     public $defaultLabelTemplate = 'standard';
     public $sellerAssignmentMode = 'customer_assigned';
     public $commissionCalculationMode = 'percentage_threshold';
-    public $salesShowCommissions, $salesShowFreight, $salesShowBreakdownFreight, $salesShowWarehouse, $salesShowDriver;
+    public $salesShowCommissions, $salesShowFreight, $salesShowBreakdownFreight, $salesShowWarehouse, $salesShowDriver, $salesShowDiscountPercentage;
     public $globalCommission1Threshold, $globalCommission1Percentage, $globalCommission2Threshold, $globalCommission2Percentage;
     public $globalAllowCredit, $globalCreditDays, $globalCreditLimit, $globalUsdPaymentDiscount, $globalUsdPaymentDiscountTag;
     public $enableSharedCashRegister; // Nuevo: Caja Compartida
@@ -132,6 +132,7 @@ class Settings extends Component
             $this->salesShowBreakdownFreight = (bool) $config->sales_show_breakdown_freight;
             $this->salesShowWarehouse = (bool) $config->sales_show_warehouse;
             $this->salesShowDriver = (bool) $config->sales_show_driver;
+            $this->salesShowDiscountPercentage = (bool) ($config->sales_show_discount_percentage ?? false);
             $this->defaultWarehouseId = $config->default_warehouse_id;
             $this->sopladosWarehouseId = $config->soplados_warehouse_id;
             $this->bolsasWarehouseId = $config->bolsas_warehouse_id;
@@ -398,6 +399,7 @@ class Settings extends Component
                 'sales_show_breakdown_freight' => $this->salesShowBreakdownFreight,
                 'sales_show_warehouse' => $this->salesShowWarehouse,
                 'sales_show_driver' => $this->salesShowDriver,
+                'sales_show_discount_percentage' => (bool) $this->salesShowDiscountPercentage,
                 'default_warehouse_id' => $this->defaultWarehouseId,
                 'soplados_warehouse_id' => $this->sopladosWarehouseId,
             'bolsas_warehouse_id' => $this->bolsasWarehouseId,
@@ -460,6 +462,7 @@ class Settings extends Component
             );
 
             \App\Services\TerminologyService::clearCache();
+            \App\Services\ConfigurationService::clearCache();
 
             // Save Global Settings for Credit:
             // Need to update specifically because updateOrCreate might not trigger if I missed adding them to $data array above.

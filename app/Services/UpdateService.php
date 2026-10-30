@@ -530,6 +530,29 @@ class UpdateService
             });
         }
 
+        // Ensure sales_show_discount_percentage and metadata columns
+        if (\Illuminate\Support\Facades\Schema::hasTable('configurations')) {
+            if (!\Illuminate\Support\Facades\Schema::hasColumn('configurations', 'sales_show_discount_percentage')) {
+                \Illuminate\Support\Facades\Schema::table('configurations', function (\Illuminate\Database\Schema\Blueprint $table) {
+                    $table->boolean('sales_show_discount_percentage')->default(false)->after('sales_show_driver');
+                });
+            }
+        }
+        if (\Illuminate\Support\Facades\Schema::hasTable('sales')) {
+            if (!\Illuminate\Support\Facades\Schema::hasColumn('sales', 'metadata')) {
+                \Illuminate\Support\Facades\Schema::table('sales', function (\Illuminate\Database\Schema\Blueprint $table) {
+                    $table->text('metadata')->nullable()->after('notes');
+                });
+            }
+        }
+        if (\Illuminate\Support\Facades\Schema::hasTable('orders')) {
+            if (!\Illuminate\Support\Facades\Schema::hasColumn('orders', 'metadata')) {
+                \Illuminate\Support\Facades\Schema::table('orders', function (\Illuminate\Database\Schema\Blueprint $table) {
+                    $table->text('metadata')->nullable()->after('notes');
+                });
+            }
+        }
+
         // Fix: Auto-heal / backfill invoice_number for older sales and calibrate sequence
         try {
             if (\Illuminate\Support\Facades\Schema::hasTable('sales') && \Illuminate\Support\Facades\Schema::hasColumn('sales', 'invoice_number')) {

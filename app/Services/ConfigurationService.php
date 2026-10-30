@@ -16,6 +16,11 @@ class ConfigurationService
         return self::$config;
     }
 
+    public static function clearCache()
+    {
+        self::$config = null;
+    }
+
     public static function getDecimalPlaces()
     {
         return self::getConfig()?->decimals ?? 0;

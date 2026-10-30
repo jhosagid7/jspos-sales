@@ -119,6 +119,7 @@ class Configuration extends Model
         'sales_show_breakdown_freight',
         'sales_show_warehouse',
         'sales_show_driver',
+        'sales_show_discount_percentage',
         'ticket_settings',
         'pdf_settings',
         'custom_labels',
@@ -179,6 +180,7 @@ class Configuration extends Model
         'sales_show_breakdown_freight' => 'boolean',
         'sales_show_warehouse' => 'boolean',
         'sales_show_driver' => 'boolean',
+        'sales_show_discount_percentage' => 'boolean',
         'show_sync_bags_button' => 'boolean',
     ];
 

@@ -94,6 +94,12 @@
                                         <span class="text-muted">I.V.A.:</span>
                                         <span class="fw-bold">{{ $symbol }}{{ formatMoney($this->displayIvaCart) }}</span>
                                     </div>
+                                    @if(($salesShowDiscountPercentage ?? false) && floatval($discount_percentage) > 0)
+                                    <div class="d-flex justify-content-between mb-2 text-success">
+                                        <span>Descuento ({{ floatval($discount_percentage) }}%):</span>
+                                        <span class="fw-bold">-{{ $symbol }}{{ formatMoney($this->displayDiscountAmount) }}</span>
+                                    </div>
+                                    @endif
                                     <div class="d-flex justify-content-between">
                                         <span class="fs-5 fw-bold text-primary">TOTAL:</span>
                                         <span class="fs-5 fw-bold text-primary">{{ $symbol }}{{ formatMoney($this->displayTotalCart) }}</span>
