@@ -97,7 +97,7 @@
                                         <i class="fas fa-edit"></i> Editar
                                     </button>
                                     <button wire:click="rejectTransfer({{ $transfer->id }})" 
-                                            wire:confirm="¿Rechazar todo el traspaso? El stock retornará a la planta."
+                                            wire:confirm="¿Rechazar todo el traspaso? El stock retornará al depósito de origen."
                                             class="btn btn-warning btn-sm" title="Rechazar Todo">
                                         <i class="fas fa-times"></i> Rechazar
                                     </button>

@@ -331,6 +331,8 @@ class Transfers extends Component
         DB::beginTransaction();
         try {
             $hasRejections = false;
+            $config = \App\Models\Configuration::first();
+            $soplados_warehouse_id = $config->soplados_warehouse_id ?? null;
 
             foreach ($this->receiving_details as $detailId => $data) {
                 $detail = TransferDetail::find($detailId);
@@ -344,7 +346,10 @@ class Transfers extends Component
                 
                 if ($rejected > 0) {
                     $hasRejections = true;
-                    // We DO NOT return stock here. The Soplados App operator must receive the return in the App.
+                    // Si el origen NO es la planta de Soplados, retornar el stock rechazado directamente al origen
+                    if ($transfer->from_warehouse_id != $soplados_warehouse_id) {
+                        $this->updateStock($transfer->from_warehouse_id, $detail->product_id, $rejected);
+                    }
                 }
 
                 $detail->update([
@@ -358,10 +363,18 @@ class Transfers extends Component
                 }
             }
 
+            $noteUpdate = $transfer->note;
+            if ($hasRejections && $transfer->from_warehouse_id != $soplados_warehouse_id) {
+                if (!str_contains($noteUpdate ?? '', '[Devolución Recibida]')) {
+                    $noteUpdate = trim(($noteUpdate ?? '') . ' [Devolución Recibida]');
+                }
+            }
+
             $transfer->update([
                 'status' => $hasRejections ? 'completed_partial' : 'completed',
                 'received_by_id' => Auth::user()->id,
-                'rejection_reason' => $this->rejection_reason
+                'rejection_reason' => $this->rejection_reason,
+                'note' => $noteUpdate
             ]);
 
             // Registrar capas FIFO para socios/depósitos de origen
@@ -369,7 +382,10 @@ class Transfers extends Component
 
             DB::commit();
             $this->dispatch('hide-receive-modal');
-            $this->dispatch('msg', 'Traspaso procesado. Los rechazos pendientes aparecerán en la App del operador.');
+            $msg = ($hasRejections && $transfer->from_warehouse_id == $soplados_warehouse_id)
+                ? 'Traspaso procesado. Los rechazos de planta aparecerán en la App del operador.'
+                : 'Traspaso procesado y stock actualizado correctamente.';
+            $this->dispatch('msg', $msg);
         } catch (\Exception $e) {
             DB::rollback();
             $this->dispatch('error', 'Error al procesar: ' . $e->getMessage());
@@ -423,17 +439,21 @@ class Transfers extends Component
                     'received_quantity' => 0,
                     'rejected_quantity' => $detail->quantity
                 ]);
-                // We DO NOT return stock here. The operator must confirm the return in the app.
+
+                // Retornar el stock descontado al depósito de origen
+                $this->updateStock($transfer->from_warehouse_id, $detail->product_id, $detail->quantity);
             }
 
+            $noteSuffix = str_contains($transfer->note ?? '', '[Devolución Recibida]') ? '' : ' [Devolución Recibida]';
             $transfer->update([
                 'status' => 'rejected',
                 'received_by_id' => Auth::user()->id,
-                'rejection_reason' => 'Rechazado completamente'
+                'rejection_reason' => $this->rejection_reason ?: 'Rechazado completamente',
+                'note' => trim(($transfer->note ?? '') . $noteSuffix)
             ]);
 
             DB::commit();
-            $this->dispatch('msg', 'Traspaso rechazado. La devolución aparecerá en la App para el operador.');
+            $this->dispatch('msg', 'Traspaso rechazado y stock devuelto al depósito de origen.');
         } catch (\Exception $e) {
             DB::rollback();
             $this->dispatch('error', 'Error al rechazar: ' . $e->getMessage());

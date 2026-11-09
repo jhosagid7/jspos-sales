@@ -1,3 +1,14 @@
+## [1.10.474] - 2026-11-09
+
+### Fixed (Restauración Automática de Stock al Rechazar Traspasos de Inventario)
+- **Retorno Inmediato de Stock al Depósito de Origen al Rechazar**:
+  - `Transfers.php`: Modificado `rejectTransfer()` para que, al rechazar un traspaso despachado desde el panel web, el stock de todos los productos sea restituido de inmediato al depósito de origen (`from_warehouse_id`), eliminando el bloqueo que dejaba la mercancía descontada en el limbo a la espera de una confirmación en la app móvil.
+  - Etiquetado automático de auditoría: al rechazar se anexa `[Devolución Recibida]` en la nota del traspaso, evitando duplicación de devoluciones en plantas con operadores móviles.
+  - Recepción parcial protegida (`finalizeTransfer()`): para traspasos originados fuera de la planta de soplados, las unidades rechazadas se restituyen automáticamente al stock del depósito de origen.
+  - `transfers.blade.php`: Actualizado mensaje de confirmación en la vista a *"¿Rechazar todo el traspaso? El stock retornará al depósito de origen."*.
+- **Pruebas Automatizadas (TDD)**:
+  - `TransferRejectionStockRestorationTest.php`: Cobertura completa de verificación de restitución de stock al rechazar traspasos despachados y al finalizar traspasos con rechazos parciales.
+
 ## [1.10.473] - 2026-10-30
 
 ### Added & Enhanced (Descuento Porcentual en Ventas con Persistencia en Metadatos y Switch Configurable)
