@@ -10,7 +10,7 @@ class SyncVpsOrdersCommand extends Command
     /**
      * The name and signature of the console command.
      */
-    protected $signature = 'vps:sync {--push-catalog : Subir catálogo al VPS} {--push-customers : Subir clientes al VPS} {--push-admins : Subir administradores al VPS} {--pull-orders : Descargar pedidos pendientes}';
+    protected $signature = 'vps:sync {--push-catalog : Subir catálogo al VPS} {--push-images : Subir imágenes de productos al VPS} {--push-customers : Subir clientes al VPS} {--push-admins : Subir administradores al VPS} {--pull-orders : Descargar pedidos pendientes}';
 
     /**
      * The console command description.
@@ -25,11 +25,12 @@ class SyncVpsOrdersCommand extends Command
         $this->info("Iniciando sincronización con VPS...");
 
         $pushCatalog = $this->option('push-catalog');
+        $pushImages = $this->option('push-images');
         $pushCustomers = $this->option('push-customers');
         $pushAdmins = $this->option('push-admins');
         $pullOrders = $this->option('pull-orders');
 
-        $runAll = !$pushCatalog && !$pushCustomers && !$pushAdmins && !$pullOrders;
+        $runAll = !$pushCatalog && !$pushImages && !$pushCustomers && !$pushAdmins && !$pullOrders;
 
         if ($runAll || $pushCatalog) {
             $this->line("1. Subiendo catálogo de productos...");
@@ -38,6 +39,16 @@ class SyncVpsOrdersCommand extends Command
                 $this->info("✓ Catálogo sincronizado (" . ($res['count'] ?? 0) . " productos).");
             } else {
                 $this->error("✗ Error en catálogo: " . ($res['message'] ?? 'Desconocido'));
+            }
+        }
+
+        if ($pushImages) {
+            $this->line("1.1 Subiendo imágenes físicas de productos...");
+            $res = $syncService->pushProductImages();
+            if ($res['success']) {
+                $this->info("✓ Imágenes subidas: " . ($res['uploaded'] ?? 0) . " (Omitidas: " . ($res['skipped'] ?? 0) . ", Fallidas: " . ($res['failed'] ?? 0) . ")");
+            } else {
+                $this->error("✗ Error en imágenes: " . ($res['message'] ?? 'Desconocido'));
             }
         }
 

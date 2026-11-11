@@ -340,4 +340,86 @@ class VpsSyncService
             return ['success' => false, 'message' => $e->getMessage()];
         }
     }
+
+    /**
+     * Upload a single product image to the VPS portal
+     */
+    public function uploadProductImage(string $filePath, ?string $filename = null): array
+    {
+        if (empty($this->token)) {
+            return ['success' => false, 'message' => 'VPS_SYNC_TOKEN no está configurado en .env'];
+        }
+
+        if (!file_exists($filePath)) {
+            return ['success' => false, 'message' => "El archivo no existe: {$filePath}"];
+        }
+
+        $filename = $filename ?: basename($filePath);
+
+        try {
+            $response = Http::withHeaders([
+                'X-Sync-Token' => $this->token,
+                'Accept' => 'application/json',
+            ])->timeout(30)->attach(
+                'image',
+                file_get_contents($filePath),
+                $filename
+            )->post("{$this->baseUrl}/api/sync/upload-image", [
+                'filename' => $filename,
+            ]);
+
+            if ($response->successful()) {
+                return ['success' => true, 'filename' => $filename, 'data' => $response->json()];
+            }
+
+            return ['success' => false, 'message' => $response->body()];
+        } catch (\Exception $e) {
+            Log::error("VPS Sync Exception uploadProductImage ({$filename}): " . $e->getMessage());
+            return ['success' => false, 'message' => $e->getMessage()];
+        }
+    }
+
+    /**
+     * Batch upload all local product images to the VPS portal
+     */
+    public function pushProductImages(): array
+    {
+        $products = Product::where('status', 'available')
+            ->where('show_in_sales', true)
+            ->get();
+
+        $uploaded = 0;
+        $failed = 0;
+        $skipped = 0;
+
+        foreach ($products as $p) {
+            $rawPhoto = $p->photo;
+            if (empty($rawPhoto) || str_contains($rawPhoto, 'noimage')) {
+                $skipped++;
+                continue;
+            }
+
+            $filename = basename($rawPhoto);
+            $localPath = storage_path('app/public/products/' . $filename);
+
+            if (!file_exists($localPath)) {
+                $skipped++;
+                continue;
+            }
+
+            $res = $this->uploadProductImage($localPath, $filename);
+            if ($res['success']) {
+                $uploaded++;
+            } else {
+                $failed++;
+            }
+        }
+
+        return [
+            'success' => true,
+            'uploaded' => $uploaded,
+            'failed' => $failed,
+            'skipped' => $skipped,
+        ];
+    }
 }
