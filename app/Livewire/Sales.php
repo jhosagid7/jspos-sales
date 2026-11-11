@@ -2141,7 +2141,7 @@ class Sales extends Component
         }
 
         $query = Order::with(['customer.seller', 'user', 'driver'])
-            ->where('status', 'pending')
+            ->whereIn('status', ['pending', 'draft'])
             ->when(!auth()->user()->can('orders.view_all') && auth()->user()->can('orders.view_own'), function($q) {
                 $q->where('user_id', auth()->id());
             })
