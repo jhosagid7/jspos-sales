@@ -641,6 +641,58 @@ class Sales extends Component
         $amountInUSD = $this->paymentAmount / $rateToUse;
         $amountInPrimaryCurrency = $amountInUSD * $primaryCurrency->exchange_rate;
 
+        // Escudo Anti-Dedazos (Defensive Cash Typo Guard):
+        // Detectar si el cajero omitió el punto decimal (ej: 21568 en vez de 2.16) o colocó ceros de más (ej: 4140000 en vez de 4140)
+        $totalPaidInPrimary = array_sum(array_column($this->payments, 'amount_in_primary_currency'));
+        $remainingInPrimary = max(0, $this->totalCart - $totalPaidInPrimary);
+        $primaryRate = ($primaryCurrency && $primaryCurrency->exchange_rate > 0) ? $primaryCurrency->exchange_rate : 1;
+        $remainingInUSD = $primaryRate != 0 ? ($remainingInPrimary / $primaryRate) : $remainingInPrimary;
+        $expectedInCurrency = $remainingInUSD * $rateToUse;
+
+        $enteredAmount = floatval($this->paymentAmount);
+        $excessAmount = $enteredAmount - $expectedInCurrency;
+
+        if ($excessAmount > 0 && $expectedInCurrency > 0) {
+            $isDisproportionate = false;
+            $currCode = strtoupper($currency->code);
+
+            // Regla para USD: En efectivo no existen billetes mayores a $100.
+            // Si el monto ingresado supera $100, es más de 5 veces el total pendiente y genera un vuelto >= $50, es dedazo.
+            if ($currCode === 'USD') {
+                if ($enteredAmount > 100 && $enteredAmount >= ($expectedInCurrency * 5) && $excessAmount >= 50) {
+                    $isDisproportionate = true;
+                } elseif ($enteredAmount > 200 && $excessAmount >= 100) {
+                    $isDisproportionate = true;
+                }
+            } 
+            // Regla para Bolívares (VED/VES): Si el monto es más de 5 veces el total y el vuelto supera 2,000 Bs
+            elseif (in_array($currCode, ['VED', 'VES'])) {
+                if ($enteredAmount >= ($expectedInCurrency * 5) && $excessAmount >= 2000) {
+                    $isDisproportionate = true;
+                }
+            }
+            // Regla para Pesos Colombianos (COP)
+            elseif ($currCode === 'COP') {
+                if ($enteredAmount >= ($expectedInCurrency * 5) && $excessAmount >= 100000) {
+                    $isDisproportionate = true;
+                }
+            }
+            // Regla genérica universal: Más de 50 veces el total pendiente
+            elseif ($enteredAmount >= ($expectedInCurrency * 50)) {
+                $isDisproportionate = true;
+            }
+
+            if ($isDisproportionate) {
+                $sym = $currency->symbol;
+                $formattedEntered = $sym . number_format($enteredAmount, 2);
+                $formattedExpected = $sym . number_format($expectedInCurrency, 2);
+                $formattedExcess = $sym . number_format($excessAmount, 2);
+
+                $this->dispatch('noty', msg: "MONTO RECHAZADO: {$formattedEntered} es inusualmente alto para esta venta ({$formattedExpected}) y generaría un vuelto gigante de {$formattedExcess}. Verifique si omitió el punto decimal o colocó ceros de más.", type: 'error');
+                return;
+            }
+        }
+
         $this->payments[] = [
             'method' => 'cash',
             'amount' => $this->paymentAmount,
@@ -657,6 +709,59 @@ class Sales extends Component
         session(['change' => $this->change]);
         
         $this->reset(['paymentAmount']);
+    }
+
+    public function setExactPayment()
+    {
+        $currency = collect($this->currencies)->firstWhere('code', $this->paymentCurrency);
+        if (!$currency) {
+            $currency = collect($this->currencies)->firstWhere('is_primary', 1) ?? collect($this->currencies)->first();
+            if ($currency) {
+                $this->paymentCurrency = $currency->code;
+            }
+        }
+
+        if (!$currency) {
+            return;
+        }
+
+        $rateToUse = $currency->exchange_rate;
+        if (in_array(strtoupper($currency->code), ['VED', 'VES'])) {
+            $isBcv = ($this->paymentAgreement === 'BCV') || ($this->selectedPaymentMethod !== 'credit' && $this->activeDiff > 0 && $this->applyCommissions);
+            if ($isBcv) {
+                $historyBCV = \App\Models\ExchangeRateHistory::where('rate_type', 'BCV')
+                    ->where('created_at', '<=', now())
+                    ->orderBy('created_at', 'desc')
+                    ->first();
+                $bcvVal = $historyBCV ? floatval($historyBCV->rate) : null;
+                if (!$bcvVal) {
+                    $config = \App\Models\Configuration::first();
+                    $bcvVal = $config ? floatval($config->bcv_rate) : 0;
+                }
+                if ($bcvVal > 0) {
+                    $rateToUse = $bcvVal;
+                }
+            }
+        }
+
+        $totalPaidInPrimary = array_sum(array_column($this->payments, 'amount_in_primary_currency'));
+        $remainingInPrimary = max(0, $this->totalCart - $totalPaidInPrimary);
+
+        if ($remainingInPrimary <= 0) {
+            $this->paymentAmount = '0.00';
+            return;
+        }
+
+        $primaryCurrency = collect($this->currencies)->firstWhere('is_primary', 1);
+        $primaryRate = ($primaryCurrency && $primaryCurrency->exchange_rate > 0) ? $primaryCurrency->exchange_rate : 1;
+
+        $amountInUSD = $primaryRate != 0 ? ($remainingInPrimary / $primaryRate) : $remainingInPrimary;
+        $amountInSelectedCurrency = $amountInUSD * $rateToUse;
+
+        $decimals = ConfigurationService::getDecimalPlaces();
+        $decToUse = in_array(strtoupper($currency->code), ['VED', 'VES']) ? 2 : $decimals;
+
+        $this->paymentAmount = number_format($amountInSelectedCurrency, $decToUse, '.', '');
     }
 
 

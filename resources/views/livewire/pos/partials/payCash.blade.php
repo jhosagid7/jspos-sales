@@ -225,15 +225,31 @@
                                     @if($selectedPaymentMethod === 'cash')
                                         <div class="row g-3">
                                             <div class="col-md-6">
-                                                <label class="form-label">Monto</label>
-                                                <input 
-                                                    class="form-control" 
-                                                    oninput="validarInputNumber(this)"
-                                                    wire:model.live.debounce.750ms="paymentAmount"
-                                                    wire:keydown.enter.prevent='addPayment' 
-                                                    type="number" 
-                                                    placeholder="0.00"
-                                                    id="inputCash">
+                                                <div class="d-flex justify-content-between align-items-center mb-1">
+                                                    <label class="form-label mb-0">Monto</label>
+                                                    <button type="button" 
+                                                        class="btn btn-xs btn-outline-primary py-0 px-2 fw-bold" 
+                                                        style="font-size: 0.75rem;" 
+                                                        wire:click="setExactPayment"
+                                                        title="Cargar monto exacto pendiente">
+                                                        <i class="fa fa-bolt me-1 text-warning"></i>Pagar Exacto
+                                                    </button>
+                                                </div>
+                                                <div class="input-group">
+                                                    <input 
+                                                        class="form-control" 
+                                                        oninput="validarInputNumber(this)"
+                                                        wire:model.live.debounce.750ms="paymentAmount"
+                                                        wire:keydown.enter.prevent='addPayment' 
+                                                        type="number" 
+                                                        placeholder="0.00"
+                                                        id="inputCash">
+                                                    <div class="input-group-append">
+                                                        <button class="btn btn-primary" type="button" wire:click="setExactPayment" title="Pagar Monto Exacto">
+                                                            <i class="fa fa-bolt"></i>
+                                                        </button>
+                                                    </div>
+                                                </div>
                                             </div>
                                             <div class="col-md-6">
                                                 <label class="form-label">Moneda</label>

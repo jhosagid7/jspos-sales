@@ -1,3 +1,18 @@
+## [1.10.475] - 2026-11-16
+
+### Added & Enhanced (Escudo Anti-Dedazos y Botón de Pago Exacto en Modal de Cobro POS)
+- **Escudo Anti-Dedazos en Registro de Efectivo**:
+  - `Sales.php`: Incorporada validación defensiva en `addPayment()` para verificar la proporcionalidad del monto en efectivo ingresado frente al total pendiente de la venta. Bloquea montos accidentales por omisión de punto decimal (ej. digitar `$21568` para cobrar `$2.16` o `$354` para `$3.54`) o adición involuntaria de ceros (ej. `4140000` Bs para cobrar `4140` Bs), evitando descuadres catastróficos en el arqueo de caja y reportes de cobranza por operador.
+  - Permite con total normalidad billetes legítimos de alta denominación ($5, $10, $20, $50 y $100 USD) al pagar montos menores.
+- **Botón "Pagar Exacto" (1-Click Shortcut)**:
+  - `Sales.php`: Creado método reactivo `setExactPayment()` que calcula el remanente exacto de la venta según la moneda seleccionada (USD o Bolívares a tasa oficial) y autocompleta el campo de monto de pago.
+  - `payCash.blade.php`: Incorporado botón interactivo **"Pagar Exacto"** con icono ⚡ y acceso rápido en el input de monto, permitiendo al cajero registrar el pago exacto con un solo clic sin necesidad de tipeo manual.
+- **Procesamiento de Órdenes y Sincronización de Imágenes**:
+  - `Sales.php` & `process-order.blade.php`: Visualización y procesamiento conjunto de órdenes en estado `pending` y `draft` dentro del modal de órdenes de despacho.
+  - `SyncCatalogCommand.php` & `CatalogSyncService.php`: Añadidos métodos `uploadProductImage()` y `pushProductImages()` con opción `--push-images` para sincronización bidireccional de imágenes de catálogo.
+- **Pruebas Automatizadas (TDD)**:
+  - `POSTypoGuardAndExactPaymentTest.php`: Suite completa de pruebas que valida el rechazo de dedazos por punto decimal en USD, el bloqueo de ceros adicionales en VED, la admisión de billetes válidos de $10 y $100 USD, y el autocompletado del botón de pago exacto.
+
 ## [1.10.474] - 2026-11-09
 
 ### Fixed (Restauración Automática de Stock al Rechazar Traspasos de Inventario)
