@@ -689,6 +689,21 @@ class UpdateService
         // 3. Limitar automáticamente a los últimos 3 backups para evitar llenar disco
         $this->pruneOldBackups();
 
+        // 4. Generar copia de seguridad en disco 'backup' (Auditoría -> Copias de Seguridad) y sincronizar nube
+        try {
+            Artisan::call('backup:run', [
+                '--only-db' => true,
+                '--disable-notifications' => true,
+            ]);
+            try {
+                Artisan::call('backup:cloud-sync');
+            } catch (\Throwable $cloudEx) {
+                Log::warning('Rollback backup cloud-sync warning: ' . $cloudEx->getMessage());
+            }
+        } catch (\Throwable $backupEx) {
+            Log::warning('Spatie backup:run during update warning: ' . $backupEx->getMessage());
+        }
+
         return true;
     }
 

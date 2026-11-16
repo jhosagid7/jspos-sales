@@ -1,3 +1,11 @@
+## [1.10.477] - 2026-11-16
+
+### Enhanced (Sincronización Dual de Respaldo Pre-Actualización en Auditoría y Rollback)
+- **Generación Automática de Respaldo en Auditoría al Actualizar**:
+  - `UpdateService.php`: Modificado `createRollbackBackup()` para que, durante el **Paso 1 (Respaldo Preventivo)** del proceso de actualización, no solo genere el punto interno de rollback (`database_backup.sql` y `files_backup.zip` en `storage/backups/antes_de_v{version}`), sino que también invoque de forma segura el respaldo de base de datos de Spatie (`Artisan::call('backup:run', ['--only-db' => true])`) y la sincronización con la nube (`backup:cloud-sync`).
+  - **Visibilidad Inmediata**: De este modo, la copia de seguridad previa a la actualización aparece de inmediato reflejada con su fecha y hora en el módulo de **Auditoría -> Copias de Seguridad** (`/backups`) y queda respaldada en el servidor/Google Drive, manteniendo al mismo tiempo la capacidad de rollback de 1-clic desde la pantalla de Actualizaciones.
+  - **Tolerancia a Fallos**: La llamada a Spatie Backup está encapsulada en un bloque `try...catch`, garantizando que si una máquina cliente carece de `mysqldump` en el PATH, la actualización continúa de forma segura gracias al volcado nativo PHP que ya se ejecutó exitosamente.
+
 ## [1.10.476] - 2026-11-16
 
 ### Added & Enhanced (Botón "Pagar Exacto" en Transferencias Bancarias, Zelle y Nequi en POS)
