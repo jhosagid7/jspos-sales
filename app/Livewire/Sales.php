@@ -713,11 +713,27 @@ class Sales extends Component
 
     public function setExactPayment()
     {
-        $currency = collect($this->currencies)->firstWhere('code', $this->paymentCurrency);
+        $currencyCode = $this->paymentCurrency;
+
+        if ($this->selectedPaymentMethod === 'bank' && $this->bankId) {
+            $bank = collect($this->banks)->firstWhere('id', $this->bankId);
+            if ($bank) {
+                if ($this->isZelleSelected) {
+                    $currencyCode = 'USD';
+                } elseif (!empty($bank->currency_code)) {
+                    $currencyCode = $bank->currency_code;
+                }
+            }
+        }
+
+        $currency = collect($this->currencies)->firstWhere('code', $currencyCode);
         if (!$currency) {
             $currency = collect($this->currencies)->firstWhere('is_primary', 1) ?? collect($this->currencies)->first();
             if ($currency) {
-                $this->paymentCurrency = $currency->code;
+                $currencyCode = $currency->code;
+                if ($this->selectedPaymentMethod === 'cash') {
+                    $this->paymentCurrency = $currency->code;
+                }
             }
         }
 
@@ -728,6 +744,9 @@ class Sales extends Component
         $rateToUse = $currency->exchange_rate;
         if (in_array(strtoupper($currency->code), ['VED', 'VES'])) {
             $isBcv = ($this->paymentAgreement === 'BCV') || ($this->selectedPaymentMethod !== 'credit' && $this->activeDiff > 0 && $this->applyCommissions);
+            if (!$isBcv && $this->selectedPaymentMethod === 'bank' && $this->activeDiff > 0) {
+                $isBcv = true;
+            }
             if ($isBcv) {
                 $historyBCV = \App\Models\ExchangeRateHistory::where('rate_type', 'BCV')
                     ->where('created_at', '<=', now())
@@ -749,6 +768,9 @@ class Sales extends Component
 
         if ($remainingInPrimary <= 0) {
             $this->paymentAmount = '0.00';
+            $this->bankAmount = '0.00';
+            $this->bankGlobalAmount = '0.00';
+            $this->zelleAmount = '0.00';
             return;
         }
 
@@ -761,7 +783,19 @@ class Sales extends Component
         $decimals = ConfigurationService::getDecimalPlaces();
         $decToUse = in_array(strtoupper($currency->code), ['VED', 'VES']) ? 2 : $decimals;
 
-        $this->paymentAmount = number_format($amountInSelectedCurrency, $decToUse, '.', '');
+        $formattedAmount = number_format($amountInSelectedCurrency, $decToUse, '.', '');
+
+        if ($this->selectedPaymentMethod === 'bank') {
+            $this->bankAmount = $formattedAmount;
+            $this->bankGlobalAmount = $formattedAmount;
+            $this->zelleAmount = $formattedAmount;
+            $this->paymentAmount = $formattedAmount;
+            if ($this->isVedBankSelected) {
+                $this->checkBankStatus();
+            }
+        } else {
+            $this->paymentAmount = $formattedAmount;
+        }
     }
 
 

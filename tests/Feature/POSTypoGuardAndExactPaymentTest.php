@@ -7,6 +7,7 @@ use App\Models\User;
 use App\Models\Customer;
 use App\Models\Product;
 use App\Models\Configuration;
+use App\Models\Bank;
 use App\Livewire\Sales;
 use Livewire\Livewire;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -231,5 +232,83 @@ class POSTypoGuardAndExactPaymentTest extends TestCase
             ->call('addPayment')
             ->assertCount('payments', 1)
             ->assertSet('remainingAmount', 0.0);
+    }
+
+    public function test_set_exact_payment_autofills_bank_amount_in_usd(): void
+    {
+        $bank = Bank::create([
+            'name' => 'Banesco Panama USD',
+            'account_holder' => 'Inversiones C.A.',
+            'account_number' => '01340000000000000001',
+            'cedula' => 'J12345678',
+            'phone' => '04120000000',
+            'currency_code' => 'USD',
+            'state' => true,
+        ]);
+
+        $item = $this->getCartItem($this->product, 1, 50.00);
+
+        Livewire::actingAs($this->user)
+            ->test(Sales::class)
+            ->set('cart', collect([$item]))
+            ->set('totalCart', 50.00)
+            ->set('itemsCart', 1)
+            ->set('selectedPaymentMethod', 'bank')
+            ->set('bankId', $bank->id)
+            ->call('setExactPayment')
+            ->assertSet('bankAmount', '50.0000');
+    }
+
+    public function test_set_exact_payment_autofills_bank_amount_in_ved_at_exchange_rate(): void
+    {
+        $bank = Bank::create([
+            'name' => 'Banco de Venezuela VED',
+            'account_holder' => 'Inversiones C.A.',
+            'account_number' => '01020000000000000001',
+            'cedula' => 'J12345678',
+            'phone' => '04120000000',
+            'currency_code' => 'VED',
+            'state' => true,
+        ]);
+
+        $item = $this->getCartItem($this->product, 1, 10.00);
+
+        // At rate 920.00 (configured in setUp for VED currency), 10.00 USD = 9,200.00 VED
+        Livewire::actingAs($this->user)
+            ->test(Sales::class)
+            ->set('cart', collect([$item]))
+            ->set('totalCart', 10.00)
+            ->set('itemsCart', 1)
+            ->set('selectedPaymentMethod', 'bank')
+            ->set('bankId', $bank->id)
+            ->call('setExactPayment')
+            ->assertSet('bankAmount', '9200.00')
+            ->assertSet('bankGlobalAmount', '9200.00');
+    }
+
+    public function test_set_exact_payment_autofills_zelle_amount(): void
+    {
+        $bank = Bank::create([
+            'name' => 'Zelle Wells Fargo',
+            'account_holder' => 'Zelle Account',
+            'account_number' => 'zelle@business.com',
+            'cedula' => 'J12345678',
+            'phone' => '04120000000',
+            'currency_code' => 'USD',
+            'state' => true,
+        ]);
+
+        $item = $this->getCartItem($this->product, 1, 25.50);
+
+        Livewire::actingAs($this->user)
+            ->test(Sales::class)
+            ->set('cart', collect([$item]))
+            ->set('totalCart', 25.50)
+            ->set('itemsCart', 1)
+            ->set('selectedPaymentMethod', 'bank')
+            ->set('bankId', $bank->id)
+            ->call('setExactPayment')
+            ->assertSet('zelleAmount', '25.5000')
+            ->assertSet('paymentAmount', '25.5000');
     }
 }

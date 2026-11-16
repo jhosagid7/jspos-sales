@@ -442,12 +442,26 @@
                                                 </div>
 
                                                 <div class="col-md-6">
-                                                    <label class="form-label">Monto (USD) <span class="text-danger">*</span></label>
+                                                    <div class="d-flex justify-content-between align-items-center mb-1">
+                                                        <label class="form-label mb-0">Monto (USD) <span class="text-danger">*</span></label>
+                                                        <button type="button" 
+                                                            class="btn btn-xs btn-outline-primary py-0 px-2 fw-bold" 
+                                                            style="font-size: 0.75rem;" 
+                                                            wire:click="setExactPayment"
+                                                            title="Cargar monto exacto pendiente">
+                                                            <i class="fa fa-bolt me-1 text-warning"></i>Pagar Exacto
+                                                        </button>
+                                                    </div>
                                                     <div class="input-group">
                                                         <span class="input-group-text">
                                                             <i class="fas fa-dollar-sign"></i>
                                                         </span>
                                                         <input type="number" wire:model.live="zelleAmount" class="form-control" placeholder="0.00">
+                                                        <div class="input-group-append">
+                                                            <button class="btn btn-primary" type="button" wire:click="setExactPayment" title="Pagar Monto Exacto">
+                                                                <i class="fa fa-bolt"></i>
+                                                            </button>
+                                                        </div>
                                                     </div>
                                                     @error('zelleAmount') <span class="text-danger small">{{ $message }}</span> @enderror
                                                 </div>
@@ -506,7 +520,16 @@
                                                     </div>
 
                                                     <div class="col-md-6">
-                                                        <label class="form-label">Monto del Depósito (Total)</label>
+                                                        <div class="d-flex justify-content-between align-items-center mb-1">
+                                                            <label class="form-label mb-0">Monto del Depósito (Total)</label>
+                                                            <button type="button" 
+                                                                class="btn btn-xs btn-outline-primary py-0 px-2 fw-bold" 
+                                                                style="font-size: 0.75rem;" 
+                                                                wire:click="setExactPayment"
+                                                                title="Cargar monto exacto pendiente">
+                                                                <i class="fa fa-bolt me-1 text-warning"></i>Pagar Exacto
+                                                            </button>
+                                                        </div>
                                                         <div class="input-group">
                                                             <span class="input-group-text"><i class="fas fa-money-bill"></i></span>
                                                             <input 
@@ -515,18 +538,39 @@
                                                                 wire:model.live.debounce.500ms="bankGlobalAmount" 
                                                                 type="number"
                                                                 placeholder="Monto total">
+                                                            <div class="input-group-append">
+                                                                <button class="btn btn-primary" type="button" wire:click="setExactPayment" title="Pagar Monto Exacto">
+                                                                    <i class="fa fa-bolt"></i>
+                                                                </button>
+                                                            </div>
                                                         </div>
                                                         @error('bankGlobalAmount') <span class="text-danger small">{{ $message }}</span> @enderror
                                                     </div>
 
                                                     <div class="col-md-6">
-                                                        <label class="form-label">Monto a Usar</label>
-                                                        <input 
-                                                            class="form-control" 
-                                                            oninput="validarInputNumber(this)"
-                                                            wire:model.live="bankAmount" 
-                                                            type="number"
-                                                            placeholder="0.00">
+                                                        <div class="d-flex justify-content-between align-items-center mb-1">
+                                                            <label class="form-label mb-0">Monto a Usar</label>
+                                                            <button type="button" 
+                                                                class="btn btn-xs btn-outline-primary py-0 px-2 fw-bold" 
+                                                                style="font-size: 0.75rem;" 
+                                                                wire:click="setExactPayment"
+                                                                title="Cargar monto exacto pendiente">
+                                                                <i class="fa fa-bolt me-1 text-warning"></i>Pagar Exacto
+                                                            </button>
+                                                        </div>
+                                                        <div class="input-group">
+                                                            <input 
+                                                                class="form-control" 
+                                                                oninput="validarInputNumber(this)"
+                                                                wire:model.live="bankAmount" 
+                                                                type="number"
+                                                                placeholder="0.00">
+                                                            <div class="input-group-append">
+                                                                <button class="btn btn-primary" type="button" wire:click="setExactPayment" title="Pagar Monto Exacto">
+                                                                    <i class="fa fa-bolt"></i>
+                                                                </button>
+                                                            </div>
+                                                        </div>
                                                         @error('bankAmount') <span class="text-danger small">{{ $message }}</span> @enderror
                                                     </div>
 
@@ -586,13 +630,29 @@
                                                         </div>
                                                     </div>
                                                     <div class="col-md-6">
-                                                        <label class="form-label">Monto (COP) <span class="text-danger">*</span></label>
-                                                        <input 
-                                                            class="form-control" 
-                                                            oninput="validarInputNumber(this)"
-                                                            wire:model.live="bankAmount" 
-                                                            type="number"
-                                                            placeholder="0.00">
+                                                        <div class="d-flex justify-content-between align-items-center mb-1">
+                                                            <label class="form-label mb-0">Monto (COP) <span class="text-danger">*</span></label>
+                                                            <button type="button" 
+                                                                class="btn btn-xs btn-outline-primary py-0 px-2 fw-bold" 
+                                                                style="font-size: 0.75rem;" 
+                                                                wire:click="setExactPayment"
+                                                                title="Cargar monto exacto pendiente">
+                                                                <i class="fa fa-bolt me-1 text-warning"></i>Pagar Exacto
+                                                            </button>
+                                                        </div>
+                                                        <div class="input-group">
+                                                            <input 
+                                                                class="form-control" 
+                                                                oninput="validarInputNumber(this)"
+                                                                wire:model.live="bankAmount" 
+                                                                type="number"
+                                                                placeholder="0.00">
+                                                            <div class="input-group-append">
+                                                                <button class="btn btn-primary" type="button" wire:click="setExactPayment" title="Pagar Monto Exacto">
+                                                                    <i class="fa fa-bolt"></i>
+                                                                </button>
+                                                            </div>
+                                                        </div>
                                                         @error('bankAmount') <span class="text-danger small">{{ $message }}</span> @enderror
                                                     </div>
                                                     <div class="col-md-6">
@@ -621,13 +681,29 @@
                                                 @else
                                                     {{-- STANDARD BANK FIELDS --}}
                                                     <div class="col-md-6">
-                                                        <label class="form-label">Monto</label>
-                                                        <input 
-                                                            class="form-control" 
-                                                            oninput="validarInputNumber(this)"
-                                                            wire:model.live="bankAmount" 
-                                                            type="number"
-                                                            placeholder="0.00">
+                                                        <div class="d-flex justify-content-between align-items-center mb-1">
+                                                            <label class="form-label mb-0">Monto</label>
+                                                            <button type="button" 
+                                                                class="btn btn-xs btn-outline-primary py-0 px-2 fw-bold" 
+                                                                style="font-size: 0.75rem;" 
+                                                                wire:click="setExactPayment"
+                                                                title="Cargar monto exacto pendiente">
+                                                                <i class="fa fa-bolt me-1 text-warning"></i>Pagar Exacto
+                                                            </button>
+                                                        </div>
+                                                        <div class="input-group">
+                                                            <input 
+                                                                class="form-control" 
+                                                                oninput="validarInputNumber(this)"
+                                                                wire:model.live="bankAmount" 
+                                                                type="number"
+                                                                placeholder="0.00">
+                                                            <div class="input-group-append">
+                                                                <button class="btn btn-primary" type="button" wire:click="setExactPayment" title="Pagar Monto Exacto">
+                                                                    <i class="fa fa-bolt"></i>
+                                                                </button>
+                                                            </div>
+                                                        </div>
                                                     </div>
                                                     <div class="col-md-6">
                                                         <label class="form-label">N°. Cuenta</label>

@@ -1,3 +1,17 @@
+## [1.10.476] - 2026-11-16
+
+### Added & Enhanced (Botón "Pagar Exacto" en Transferencias Bancarias, Zelle y Nequi en POS)
+- **Extensión de Botón "Pagar Exacto" a Pagos Bancarios**:
+  - `Sales.php`: Actualizado `setExactPayment()` para detectar cuando el método de pago seleccionado es `bank`. Identifica dinámicamente la cuenta bancaria seleccionada (`bankId`) y su moneda (`USD`, `VED`/`VES`, `COP`), calculando el remanente exacto de la venta convertido a dicha moneda y tasa correspondiente (incluyendo tasa oficial BCV para bolívares).
+  - Autocompleta de inmediato los campos de monto correspondientes: `bankAmount`, `bankGlobalAmount`, `zelleAmount` y `paymentAmount`.
+  - `payCash.blade.php`: Incorporado el botón interactivo **"Pagar Exacto"** con icono ⚡ y acceso directo rápido en:
+    - **Transferencias Estándar / Bancarias** (`bankAmount`).
+    - **Transferencias Detalladas en Bolívares VED/VES** (`bankGlobalAmount` y `bankAmount`).
+    - **Zelle y Pagos Digitales en Dólares USD** (`zelleAmount`).
+    - **Nequi en Pesos Colombianos COP** (`bankAmount`).
+- **Pruebas Automatizadas (TDD)**:
+  - `POSTypoGuardAndExactPaymentTest.php`: Nuevas pruebas añadidas para validar el autocompletado del botón de pago exacto en cuentas bancarias USD, cuentas bancarias en Bolívares (VED) a tasa de cambio, y transferencias por Zelle.
+
 ## [1.10.475] - 2026-11-16
 
 ### Added & Enhanced (Escudo Anti-Dedazos y Botón de Pago Exacto en Modal de Cobro POS)
