@@ -1,3 +1,12 @@
+## [1.10.478] - 2026-11-16
+
+### Enhanced & Hardened (Blindaje Anti-Congelamiento de Descarga y Auto-Verificación en Actualizador)
+- **Detección Rápida de Descarga Estancada en cURL**:
+  - `UpdateService.php`: Añadidas opciones `CURLOPT_LOW_SPEED_LIMIT` (5 KB/s) y `CURLOPT_LOW_SPEED_TIME` (20s) en `downloadUpdate()`. Si la conexión con GitHub sufre pérdida de paquetes o se estanca en los últimos megabytes, cURL aborta el intento trabado en 20 segundos y pasa de inmediato al siguiente intento en lugar de colgarse esperando 15 minutos (900s).
+  - Reducido el timeout individual por intento a 180 segundos (3 minutos), manteniéndose holgadamente dentro de la ventana de espera del navegador.
+- **Auto-Verificación Resiliente en el Frontend (AJAX)**:
+  - `update-system.blade.php`: Incorporada verificación automática en el manejador de error / timeout de la petición de actualización. Si la conexión del navegador cae o se agota el tiempo de espera, el sistema consulta `/system/current-version` antes de mostrar cualquier alerta de error. Si el backend completó la instalación en segundo plano, la interfaz transiciona de inmediato a la pantalla verde de **"¡Actualización completada!"** con éxito rotundo.
+
 ## [1.10.477] - 2026-11-16
 
 ### Enhanced (Sincronización Dual de Respaldo Pre-Actualización en Auditoría y Rollback)

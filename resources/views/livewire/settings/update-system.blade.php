@@ -544,8 +544,38 @@
                     error: function(xhr, status, error) {
                         clearTimeout(timer1);
                         clearTimeout(timer2);
-                        var msg = (xhr.responseJSON && xhr.responseJSON.message) ? xhr.responseJSON.message : (error || 'Error de conexión con el servidor');
-                        mostrarErrorActualizacion(msg);
+
+                        // Auto-verificación de resiliencia: Si la petición dio timeout o error de red,
+                        // consultar si el servidor en realidad finalizó la actualización en segundo plano
+                        $.ajax({
+                            url: "{{ url('/system/current-version') }}",
+                            type: 'GET',
+                            dataType: 'json',
+                            timeout: 10000,
+                            success: function(verRes) {
+                                var currentVerClean = (verRes.version || '').replace('v', '').trim();
+                                var targetVerClean = (version || '').replace('v', '').trim();
+
+                                if (currentVerClean && targetVerClean && currentVerClean === targetVerClean) {
+                                    updateProgreso(100, '¡Actualización completada!', '✓ ¡Sistema actualizado con éxito a la versión v' + targetVerClean + '!', '#4ec9b0', 'bg-success');
+                                    $('#badgeEstadoTerminal').removeClass('badge-light text-muted').addClass('badge-success text-white').text('Completado');
+                                    setTimeout(function() {
+                                        $('#modalProgreso').fadeOut(300, function() {
+                                            $('#txtDetalleExito').html('¡Sistema actualizado con éxito a la versión <strong class="text-dark">v' + targetVerClean + '</strong>!');
+                                            $('#modalExito').fadeIn(300);
+                                        });
+                                    }, 1000);
+                                    return;
+                                }
+
+                                var msg = (xhr.responseJSON && xhr.responseJSON.message) ? xhr.responseJSON.message : (error || 'Error de conexión con el servidor');
+                                mostrarErrorActualizacion(msg);
+                            },
+                            error: function() {
+                                var msg = (xhr.responseJSON && xhr.responseJSON.message) ? xhr.responseJSON.message : (error || 'Error de conexión con el servidor');
+                                mostrarErrorActualizacion(msg);
+                            }
+                        });
                     }
                 });
             };

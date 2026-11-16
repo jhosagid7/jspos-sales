@@ -196,10 +196,12 @@ class UpdateService
                         CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1, // Force HTTP/1.1 to avoid common SSL/TLS EOF errors in HTTP/2
                         CURLOPT_SSL_VERIFYPEER => false,               // Temporary fix for SSL certificate issues if any
                         CURLOPT_TCP_KEEPALIVE => 1,                   // Help keep connection alive
+                        CURLOPT_LOW_SPEED_LIMIT => 5120,              // 5 KB/s: Minimum transfer speed threshold
+                        CURLOPT_LOW_SPEED_TIME => 20,                 // If speed is below 5 KB/s for 20s, abort stalled attempt immediately
                     ]
                 ])
-                ->timeout(900)          // Increased to 15 minutes
-                ->connectTimeout(60)    // Increased to 60 seconds
+                ->timeout(180)          // 3 minutes per attempt (avoids hanging and stays well within browser AJAX window)
+                ->connectTimeout(30)    // 30 seconds connect timeout
                 ->sink($tempPath)
                 ->get($downloadUrl);
 
