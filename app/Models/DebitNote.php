@@ -18,7 +18,12 @@ class DebitNote extends Model
         'concept',
         'currency',
         'exchange_rate',
-        'status'
+        'status',
+        'fiscal_number',
+        'fiscal_serial',
+        'fiscal_z_number',
+        'fiscal_datetime',
+        'fiscal_status',
     ];
 
     public function customer()

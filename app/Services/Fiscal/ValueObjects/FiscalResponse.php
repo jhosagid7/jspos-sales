@@ -39,9 +39,9 @@ final class FiscalResponse
         return new self(success: true, raw: $raw, fields: $fields);
     }
 
-    public static function failure(string $error, string $raw = ''): self
+    public static function failure(string $error, string $raw = '', array $fields = []): self
     {
-        return new self(success: false, raw: $raw, error: $error);
+        return new self(success: false, raw: $raw, fields: $fields, error: $error);
     }
 
     // -------------------------------------------------------------------------

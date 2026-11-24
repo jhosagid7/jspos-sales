@@ -7,301 +7,229 @@ use App\Services\Fiscal\ValueObjects\FiscalPayment;
 use InvalidArgumentException;
 
 /**
- * Builds raw DATA strings for the TFHKA fiscal printer protocol.
+ * Builds the command lines of the TFHKA fiscal protocol (library / "SendFileCmd" format).
  *
- * Protocol reference: Manual de Protocolos y Comandos Venezuela V8.5.0 (2022)
+ * Verified against:
+ *   - Manual de Protocolos y Comandos Venezuela V8.5.0 (tablas 28-30, ejemplos 14.2/14.4)
+ *   - SDK PHP Windows: Factura.txt, Nota de Crédito.txt, Nota de Débito.txt, index.php
  *
- * This class only produces strings — it has ZERO side effects (no I/O, no DB).
- * This makes it fully unit-testable without hardware.
+ * Assumes printer FLAG 21 = 00 (price 8.2 -> 10 digits, quantity 5.3 -> 8 digits,
+ * partial-payment amount 10.2 -> 12 digits). Pure functions: no I/O, no DB.
  *
- * # Document flow:
- *   1. openDocument()         → "T01..." / "T41..." / "T61..."
- *   2. addItem() × N          → "<taxChar>..." per item
- *   3. addDiscount() (opt.)   → "M..." per item discount
- *   4. closeDocument()        → "T" (closes item section)
- *   5. addPayment() × N       → "199<media><amount>" (command 199 required when IGTF active)
- *   6. finalizeDocument()     → prints and stores
- *
- * For Credit Notes:
- *   openCreditNote() → requires iF* iD* iI* iR* iS* headers first
- *
- * For Debit Notes:
- *   openDebitNote() → same header requirements as credit note
+ * Document layout (there is NO "open document" command; the first item opens it):
+ *   Invoice : iR*, iS*, [i01..], [@comment], items (+discounts), [3 subtotal], payments, [199]
+ *   Credit  : iR*, iS*, iF*, iD*, iI*, [Acomment], items d0-d4, payments, [199]
+ *   Debit   : iR*, iS*, iF*, iD*, iI*, [Bcomment], items `0-`4, payments, [199]
+ *   Command 199 closes the document and is MANDATORY when flag 50 = 01 (IGTF).
  */
 final class FiscalCommandBuilder
 {
-    // -------------------------------------------------------------------------
-    // Document type prefixes (open-document commands)
-    // -------------------------------------------------------------------------
-    private const CMD_OPEN_INVOICE      = 'T01'; // Factura Fiscal
-    private const CMD_OPEN_CREDIT_NOTE  = 'T41'; // Nota de Crédito
-    private const CMD_OPEN_DEBIT_NOTE   = 'T61'; // Nota de Débito
+    public const COMMENT_INVOICE = '@';
+    public const COMMENT_CREDIT  = 'A';
+    public const COMMENT_DEBIT   = 'B';
 
-    // -------------------------------------------------------------------------
-    // Item tax type characters (literal protocol chars)
-    // -------------------------------------------------------------------------
-    public const TAX_EXENTO    = FiscalItem::TAX_EXENTO;    // ' '
-    public const TAX_GENERAL   = FiscalItem::TAX_GENERAL;   // '!'
-    public const TAX_REDUCIDA  = FiscalItem::TAX_REDUCIDA;  // '"'
-    public const TAX_ADICIONAL = FiscalItem::TAX_ADICIONAL; // '#'
-
-    // Credit note item chars: d0-d4 (d + taxIndex)
-    private const CREDIT_TAX_MAP = [
+    private const CREDIT_PREFIX = [
         FiscalItem::TAX_EXENTO    => 'd0',
         FiscalItem::TAX_GENERAL   => 'd1',
         FiscalItem::TAX_REDUCIDA  => 'd2',
         FiscalItem::TAX_ADICIONAL => 'd3',
     ];
 
-    // Debit note item chars: '0-'4
-    private const DEBIT_TAX_MAP = [
-        FiscalItem::TAX_EXENTO    => "'0",
-        FiscalItem::TAX_GENERAL   => "'1",
-        FiscalItem::TAX_REDUCIDA  => "'2",
-        FiscalItem::TAX_ADICIONAL => "'3",
+    private const DEBIT_PREFIX = [
+        FiscalItem::TAX_EXENTO    => '`0',
+        FiscalItem::TAX_GENERAL   => '`1',
+        FiscalItem::TAX_REDUCIDA  => '`2',
+        FiscalItem::TAX_ADICIONAL => '`3',
     ];
 
-    // -------------------------------------------------------------------------
-    // Public API
-    // -------------------------------------------------------------------------
+    // ------------------------------------------------------------------ headers
 
-    /**
-     * Build the "open invoice" command.
-     *
-     * @param  string  $customerName  Razón social del cliente (max 40 chars)
-     * @param  string  $customerId    RIF or Cédula (e.g. "J-12345678-9" or "V-12345678")
-     */
-    public function openInvoice(string $customerName, string $customerId): string
+    /** @return string[] */
+    public function invoiceHeader(string $customerName, string $customerId): array
     {
-        return self::CMD_OPEN_INVOICE
-            . $this->padName($customerName)
-            . $this->formatId($customerId);
-    }
-
-    /**
-     * Build an "open credit note" command.
-     * Must be preceded by the iF*, iD*, iI*, iR*, iS* header commands.
-     *
-     * @param  string  $customerName  Razón social del cliente
-     * @param  string  $customerId    RIF or Cédula
-     */
-    public function openCreditNote(string $customerName, string $customerId): string
-    {
-        return self::CMD_OPEN_CREDIT_NOTE
-            . $this->padName($customerName)
-            . $this->formatId($customerId);
-    }
-
-    /**
-     * Build an "open debit note" command.
-     */
-    public function openDebitNote(string $customerName, string $customerId): string
-    {
-        return self::CMD_OPEN_DEBIT_NOTE
-            . $this->padName($customerName)
-            . $this->formatId($customerId);
-    }
-
-    /**
-     * Build credit/debit note header commands (OBLIGATORIO before open).
-     *
-     * @param  string  $invoiceNumber  Original fiscal invoice number
-     * @param  string  $invoiceDate    Original invoice date (DD/MM/YYYY)
-     * @param  string  $printerSerial  Serial number of printer that issued the invoice
-     * @param  string  $customerId     RIF/CI of the customer on the original invoice
-     * @param  string  $customerName   Razón social on the original invoice
-     * @return array<string>  Array of header DATA strings to send in order
-     */
-    public function buildNoteHeaders(
-        string $invoiceNumber,
-        string $invoiceDate,
-        string $printerSerial,
-        string $customerId,
-        string $customerName,
-    ): array {
         return [
-            'iF*' . $invoiceNumber,                // Original invoice number
-            'iD*' . $invoiceDate,                  // Original invoice date
-            'iI*' . $printerSerial,                // Printer serial that issued it
-            'iR*' . $this->formatId($customerId),  // Customer RIF/CI
-            'iS*' . $this->padName($customerName), // Customer razón social
+            'iR*' . $this->clean($customerId, 20),
+            'iS*' . $this->clean($customerName, 40),
         ];
     }
 
     /**
-     * Build an item line command for a Factura Fiscal.
+     * Header for credit AND debit notes. All five fields are mandatory.
      *
-     * @param  FiscalItem  $item
-     * @param  int         $maxNameLength  Max name chars (20 for HKA80, 40 for PP9)
-     * @return string  DATA string ready to send
+     * @param string $invoiceDate Original document date, any parseable date or DD-MM-YYYY
+     * @return string[]
      */
-    public function buildItemCommand(FiscalItem $item, int $maxNameLength = 20): string
-    {
-        $name   = mb_substr($item->name, 0, $maxNameLength);
-        $qty    = $this->formatQuantity($item->quantity);
-        $price  = $this->formatAmount($item->unitPrice);
-        $tax    = $item->taxType;
-
-        // Format: {taxChar}{name}@{qty}@{price}
-        return "{$tax}{$name}@{$qty}@{$price}";
-    }
-
-    /**
-     * Build an item line command for a Nota de Crédito.
-     */
-    public function buildCreditItemCommand(FiscalItem $item, int $maxNameLength = 20): string
-    {
-        $prefix = self::CREDIT_TAX_MAP[$item->taxType]
-            ?? throw new InvalidArgumentException("Invalid tax type for credit note: '{$item->taxType}'");
-
-        $name  = mb_substr($item->name, 0, $maxNameLength);
-        $qty   = $this->formatQuantity($item->quantity);
-        $price = $this->formatAmount($item->unitPrice);
-
-        return "{$prefix}{$name}@{$qty}@{$price}";
-    }
-
-    /**
-     * Build an item line command for a Nota de Débito.
-     */
-    public function buildDebitItemCommand(FiscalItem $item, int $maxNameLength = 20): string
-    {
-        $prefix = self::DEBIT_TAX_MAP[$item->taxType]
-            ?? throw new InvalidArgumentException("Invalid tax type for debit note: '{$item->taxType}'");
-
-        $name  = mb_substr($item->name, 0, $maxNameLength);
-        $qty   = $this->formatQuantity($item->quantity);
-        $price = $this->formatAmount($item->unitPrice);
-
-        return "{$prefix}{$name}@{$qty}@{$price}";
-    }
-
-    /**
-     * Build a discount command for the current item.
-     * Must be sent immediately after the item it applies to.
-     *
-     * @param  float   $discountPercent  0.01 - 99.99
-     * @param  string  $description      Optional description (max 10 chars)
-     */
-    public function buildDiscountCommand(float $discountPercent, string $description = 'DESCUENTO'): string
-    {
-        $desc    = mb_substr($description, 0, 10);
-        $percent = number_format($discountPercent, 2, '.', '');
-        return "M{$desc}@{$percent}";
-    }
-
-    /**
-     * Build the "subtotal" command that closes the item section.
-     * Sent before payment commands.
-     */
-    public function buildSubtotalCommand(): string
-    {
-        return 'T';
-    }
-
-    /**
-     * Build a payment command.
-     *
-     * When IGTF is active (flag 50 = 01), command 199 is MANDATORY to close
-     * the invoice and correctly calculate the 3% surcharge on divisas.
-     *
-     * @param  FiscalPayment  $payment
-     * @param  bool           $igtfEnabled  Whether the installation has IGTF active
-     * @return string  DATA string
-     */
-    public function buildPaymentCommand(FiscalPayment $payment, bool $igtfEnabled = false): string
-    {
-        $amount = $this->formatAmount($payment->amountVes);
-
-        if ($igtfEnabled) {
-            // Command 199 is mandatory when flag 50=01
-            return "199{$payment->mediaCode}{$amount}";
+    public function noteHeader(
+        string $customerName,
+        string $customerId,
+        string $originalNumber,
+        string $originalDate,
+        string $printerSerial,
+    ): array {
+        if (trim($originalNumber) === '' || trim($printerSerial) === '' || trim($originalDate) === '') {
+            throw new InvalidArgumentException('Credit/debit notes require original number, date and printer serial.');
         }
 
-        // Standard payment command (without IGTF)
-        return "1{$payment->mediaCode}{$amount}";
+        return [
+            'iR*' . $this->clean($customerId, 20),
+            'iS*' . $this->clean($customerName, 40),
+            'iF*' . $this->clean($originalNumber, 11),
+            'iD*' . $this->formatDate($originalDate),
+            'iI*' . $this->clean($printerSerial, 15),
+        ];
     }
 
-    /**
-     * Build an X (interim) report command.
-     * Prints current totals without closing the fiscal day.
-     */
-    public function buildXReportCommand(): string
+    /** Free-text comment line. $type: COMMENT_INVOICE | COMMENT_CREDIT | COMMENT_DEBIT. */
+    public function comment(string $text, string $type = self::COMMENT_INVOICE): string
     {
-        return 'I';
+        return $type . $this->clean($text, 40);
     }
 
-    /**
-     * Build a Z (daily closure) report command.
-     * CLOSES the fiscal day — irreversible. Increments Z counter.
-     */
-    public function buildZReportCommand(): string
+    // -------------------------------------------------------------------- items
+
+    public function invoiceItem(FiscalItem $item, int $maxName = 40): string
     {
-        return 'Z';
+        return $item->taxType . $this->itemBody($item, $maxName);
     }
 
-    /**
-     * Build the S1 status read command.
-     */
-    public function buildS1Command(): string
+    public function creditItem(FiscalItem $item, int $maxName = 40): string
     {
-        return 'S1';
+        $prefix = self::CREDIT_PREFIX[$item->taxType]
+            ?? throw new InvalidArgumentException("Invalid tax type for credit note: '{$item->taxType}'");
+
+        return $prefix . $this->itemBody($item, $maxName);
     }
 
-    /**
-     * Build the S2 status read command.
-     */
-    public function buildS2Command(): string
+    public function debitItem(FiscalItem $item, int $maxName = 40): string
     {
-        return 'S2';
+        $prefix = self::DEBIT_PREFIX[$item->taxType]
+            ?? throw new InvalidArgumentException("Invalid tax type for debit note: '{$item->taxType}'");
+
+        return $prefix . $this->itemBody($item, $maxName);
     }
 
-    /**
-     * Build the "print programming" command (useful for setup verification).
-     * Prints all current flags, tax rates, and printer serial.
-     */
-    public function buildPrintProgrammingCommand(): string
+    /** Percentage discount on the previous item, e.g. 10.0 => "p-1000". */
+    public function discountPercent(float $percent): string
     {
-        return 'D';
+        if ($percent <= 0 || $percent >= 100) {
+            throw new InvalidArgumentException('Discount percent must be between 0 and 100 (exclusive).');
+        }
+
+        return 'p-' . $this->digits($percent * 100, 4);
     }
 
-    // -------------------------------------------------------------------------
-    // Private helpers
-    // -------------------------------------------------------------------------
-
-    /**
-     * Pad/truncate customer name to 40 chars.
-     * The printer field is fixed-width in some models.
-     */
-    private function padName(string $name): string
+    /** Amount discount on the previous item, e.g. 10.00 => "q-000001000". */
+    public function discountAmount(float $amount): string
     {
-        return mb_substr($name, 0, 40);
+        return 'q-' . $this->digits($amount * 100, 9);
     }
 
-    /**
-     * Format RIF/CI: remove hyphens, uppercase.
-     * Input:  "J-12345678-9" → Output: "J123456789"
-     */
-    private function formatId(string $id): string
+    public function subtotal(): string
     {
-        return strtoupper(str_replace(['-', ' '], '', $id));
+        return '3';
     }
 
-    /**
-     * Format quantity: 3 decimal places, no thousands separator.
-     * Example: 1.5 → "1.500"
-     */
-    private function formatQuantity(float $qty): string
-    {
-        return number_format($qty, 3, '.', '');
-    }
+    // ----------------------------------------------------------------- payments
 
     /**
-     * Format monetary amount: 2 decimal places, no thousands separator.
-     * Example: 1234.5 → "1234.50"
+     * Payment lines for a document: partial payments (2) for all but the last,
+     * direct payment (1) for the last one, then 199 when IGTF/flag 50 is active.
+     *
+     * @param FiscalPayment[] $payments
+     * @return string[]
      */
-    private function formatAmount(float $amount): string
+    public function payments(array $payments, bool $igtfEnabled): array
     {
-        return number_format($amount, 2, '.', '');
+        $payments = array_values($payments);
+        if ($payments === []) {
+            throw new InvalidArgumentException('At least one payment is required.');
+        }
+
+        $lines = [];
+        $last  = count($payments) - 1;
+        foreach ($payments as $i => $payment) {
+            $lines[] = $i === $last
+                ? '1' . $this->media($payment->mediaCode)
+                : '2' . $this->media($payment->mediaCode) . $this->digits($payment->amountVes * 100, 12);
+        }
+
+        if ($igtfEnabled) {
+            $lines[] = '199';
+        }
+
+        return $lines;
+    }
+
+    // ------------------------------------------------------------ reports/status
+
+    public function xReport(): string
+    {
+        return 'I0X';
+    }
+
+    /** Closes the fiscal day. Irreversible. */
+    public function zReport(): string
+    {
+        return 'I0Z';
+    }
+
+    /** Status request name understood by IntTFHKA UploadStatusCmd / TfhkaNet. */
+    public function statusRequest(int $n = 1): string
+    {
+        return 'S' . $n;
+    }
+
+    // ------------------------------------------------------------------ helpers
+
+    private function itemBody(FiscalItem $item, int $maxName): string
+    {
+        if ($item->quantity <= 0 || $item->unitPrice < 0) {
+            throw new InvalidArgumentException("Invalid quantity/price for item '{$item->name}'.");
+        }
+
+        return $this->digits($item->unitPrice * 100, 10)
+            . $this->digits($item->quantity * 1000, 8)
+            . $this->clean($item->name, $maxName);
+    }
+
+    /** Zero-padded integer; throws on overflow/negative instead of silently truncating. */
+    private function digits(float $scaled, int $width): string
+    {
+        $n = (int) round($scaled);
+        if ($n < 0 || strlen((string) $n) > $width) {
+            throw new InvalidArgumentException("Value out of range for a {$width}-digit field.");
+        }
+
+        return str_pad((string) $n, $width, '0', STR_PAD_LEFT);
+    }
+
+    private function media(string $code): string
+    {
+        if (!preg_match('/^(0[1-9]|1[0-9]|2[0-4])$/', $code)) {
+            throw new InvalidArgumentException("Invalid payment media code '{$code}' (01-24).");
+        }
+
+        return $code;
+    }
+
+    private function formatDate(string $date): string
+    {
+        if (preg_match('/^\d{2}-\d{2}-\d{4}$/', $date)) {
+            return $date;
+        }
+        $ts = strtotime(str_replace('/', '-', $date));
+        if ($ts === false) {
+            throw new InvalidArgumentException("Unparseable date '{$date}'.");
+        }
+
+        return date('d-m-Y', $ts);
+    }
+
+    /** Strip control chars and line breaks (they would split the command), then truncate. */
+    private function clean(string $text, int $max): string
+    {
+        $text = preg_replace('/[\x00-\x1F\x7F]+/u', ' ', $text) ?? '';
+
+        return trim(mb_substr(trim($text), 0, $max));
     }
 }

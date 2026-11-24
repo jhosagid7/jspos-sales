@@ -5,354 +5,163 @@ namespace Tests\Unit\Fiscal;
 use App\Services\Fiscal\FiscalCommandBuilder;
 use App\Services\Fiscal\ValueObjects\FiscalItem;
 use App\Services\Fiscal\ValueObjects\FiscalPayment;
+use InvalidArgumentException;
 use PHPUnit\Framework\TestCase;
 
 /**
- * Unit tests for FiscalCommandBuilder.
- *
- * Tests verify that the DATA strings produced match the TFHKA protocol
- * exactly as documented in Manual de Protocolos V8.5.0 (2022).
- *
- * No I/O, no DB, no Laravel bootstrap needed — these are pure PHP tests.
+ * Expected strings are taken from the official SDK samples (Factura.txt,
+ * Nota de Crédito.txt, Nota de Débito.txt) and Manual V8.5.0 §14.
  */
 class FiscalCommandBuilderTest extends TestCase
 {
-    private FiscalCommandBuilder $builder;
+    private FiscalCommandBuilder $b;
 
     protected function setUp(): void
     {
         parent::setUp();
-        $this->builder = new FiscalCommandBuilder();
+        $this->b = new FiscalCommandBuilder();
     }
 
-    // =========================================================================
-    // openInvoice
-    // =========================================================================
-
-    /** @test */
-    public function open_invoice_starts_with_T01(): void
+    public function test_invoice_header_matches_sdk_sample(): void
     {
-        $cmd = $this->builder->openInvoice('EMPRESA EJEMPLO C.A.', 'J-12345678-9');
-        $this->assertStringStartsWith('T01', $cmd);
+        $this->assertSame(['iR*14.547.292', 'iS*Dany Méndez'], $this->b->invoiceHeader('Dany Méndez', '14.547.292'));
     }
 
-    /** @test */
-    public function open_invoice_formats_rif_without_hyphens(): void
+    public function test_header_strips_line_breaks_and_truncates(): void
     {
-        $cmd = $this->builder->openInvoice('EMPRESA EJEMPLO C.A.', 'J-12345678-9');
-        // RIF should be uppercase, hyphens removed
-        $this->assertStringContainsString('J123456789', $cmd);
+        $h = $this->b->invoiceHeader("ACME\nC.A." . str_repeat('X', 60), 'J-1');
+        $this->assertStringNotContainsString("\n", $h[1]);
+        $this->assertLessThanOrEqual(3 + 40, mb_strlen($h[1]));
     }
 
-    /** @test */
-    public function open_invoice_truncates_customer_name_to_40_chars(): void
+    /** @dataProvider itemSamples */
+    public function test_invoice_items_match_sdk_sample(string $tax, string $expected): void
     {
-        $longName = str_repeat('A', 50);
-        $cmd = $this->builder->openInvoice($longName, 'V-12345678');
-        // After T01, the name portion should be max 40 chars
-        $this->assertLessThanOrEqual(3 + 40 + 9, strlen($cmd)); // T01 + name + rif
+        $item = new FiscalItem('PRODUCTO', 5.00, 1.0, $tax);
+        $this->assertSame($expected, $this->b->invoiceItem($item));
     }
 
-    // =========================================================================
-    // openCreditNote / openDebitNote
-    // =========================================================================
-
-    /** @test */
-    public function open_credit_note_starts_with_T41(): void
+    public static function itemSamples(): array
     {
-        $cmd = $this->builder->openCreditNote('CLIENTE SA', 'J-98765432-1');
-        $this->assertStringStartsWith('T41', $cmd);
+        return [
+            'general'   => [FiscalItem::TAX_GENERAL,   '!000000050000001000PRODUCTO'],
+            'reducida'  => [FiscalItem::TAX_REDUCIDA,  '"000000050000001000PRODUCTO'],
+            'adicional' => [FiscalItem::TAX_ADICIONAL, '#000000050000001000PRODUCTO'],
+            'exento'    => [FiscalItem::TAX_EXENTO,    ' 000000050000001000PRODUCTO'],
+        ];
     }
 
-    /** @test */
-    public function open_debit_note_starts_with_T61(): void
+    public function test_item_encodes_decimals_and_quantity(): void
     {
-        $cmd = $this->builder->openDebitNote('CLIENTE SA', 'J-98765432-1');
-        $this->assertStringStartsWith('T61', $cmd);
+        // price 15.50 -> 0000001550 ; qty 3.5 -> 00003500
+        $this->assertSame('!000000155000003500Jamon', $this->b->invoiceItem(new FiscalItem('Jamon', 15.50, 3.5)));
     }
 
-    // =========================================================================
-    // buildNoteHeaders
-    // =========================================================================
-
-    /** @test */
-    public function note_headers_returns_exactly_5_commands(): void
+    public function test_item_rejects_overflow_and_bad_values(): void
     {
-        $headers = $this->builder->buildNoteHeaders(
-            invoiceNumber: '00001234',
-            invoiceDate:   '15/11/2026',
-            printerSerial: 'Z1C0001234',
-            customerId:    'J-12345678-9',
-            customerName:  'EMPRESA EJEMPLO',
+        $this->expectException(InvalidArgumentException::class);
+        $this->b->invoiceItem(new FiscalItem('X', 999999999.99, 1.0)); // > 8 integer digits
+    }
+
+    public function test_item_rejects_zero_quantity(): void
+    {
+        $this->expectException(InvalidArgumentException::class);
+        $this->b->invoiceItem(new FiscalItem('X', 1.0, 0.0));
+    }
+
+    public function test_credit_items_match_sdk_sample(): void
+    {
+        $this->assertSame('d1000000050000001000PRODUCTO TASA GRAL',
+            $this->b->creditItem(new FiscalItem('PRODUCTO TASA GRAL', 5.0, 1.0, FiscalItem::TAX_GENERAL)));
+        $this->assertSame('d0000000030000001000PRODUCTO EXENTO',
+            $this->b->creditItem(new FiscalItem('PRODUCTO EXENTO', 3.0, 1.0, FiscalItem::TAX_EXENTO)));
+    }
+
+    public function test_debit_items_use_backtick_prefix_like_sdk_sample(): void
+    {
+        $this->assertSame('`2000000070000001000PRODUCTO TASA REDU',
+            $this->b->debitItem(new FiscalItem('PRODUCTO TASA REDU', 7.0, 1.0, FiscalItem::TAX_REDUCIDA)));
+    }
+
+    public function test_note_header_matches_sdk_sample_order(): void
+    {
+        $h = $this->b->noteHeader('Pedro Pablo Leon', '12345678', '00000000001', '14-07-2015', 'ZPA2000343');
+        $this->assertSame(
+            ['iR*12345678', 'iS*Pedro Pablo Leon', 'iF*00000000001', 'iD*14-07-2015', 'iI*ZPA2000343'],
+            $h
         );
-
-        $this->assertCount(5, $headers);
     }
 
-    /** @test */
-    public function note_headers_have_correct_prefixes(): void
+    public function test_note_header_normalizes_dates(): void
     {
-        $headers = $this->builder->buildNoteHeaders(
-            invoiceNumber: '00001234',
-            invoiceDate:   '15/11/2026',
-            printerSerial: 'Z1C0001234',
-            customerId:    'J-12345678-9',
-            customerName:  'EMPRESA EJEMPLO',
-        );
-
-        $this->assertStringStartsWith('iF*', $headers[0]); // invoice number
-        $this->assertStringStartsWith('iD*', $headers[1]); // invoice date
-        $this->assertStringStartsWith('iI*', $headers[2]); // printer serial
-        $this->assertStringStartsWith('iR*', $headers[3]); // RIF
-        $this->assertStringStartsWith('iS*', $headers[4]); // razón social
+        $h = $this->b->noteHeader('A', '1', '1', '2026-11-15', 'Z1');
+        $this->assertSame('iD*15-11-2026', $h[3]);
     }
 
-    /** @test */
-    public function note_headers_contain_invoice_number(): void
+    public function test_note_header_requires_original_data(): void
     {
-        $headers = $this->builder->buildNoteHeaders(
-            invoiceNumber: '00001234',
-            invoiceDate:   '15/11/2026',
-            printerSerial: 'Z1C0001234',
-            customerId:    'J-12345678-9',
-            customerName:  'EMPRESA EJEMPLO',
-        );
-
-        $this->assertSame('iF*00001234', $headers[0]);
-        $this->assertSame('iD*15/11/2026', $headers[1]);
-        $this->assertSame('iI*Z1C0001234', $headers[2]);
+        $this->expectException(InvalidArgumentException::class);
+        $this->b->noteHeader('A', '1', '', '14-07-2015', 'Z1');
     }
 
-    // =========================================================================
-    // buildItemCommand
-    // =========================================================================
-
-    /** @test */
-    public function item_command_for_general_tax_starts_with_exclamation(): void
+    public function test_comment_prefixes(): void
     {
-        $item = new FiscalItem('Producto Test', 100.00, 1.0, FiscalItem::TAX_GENERAL);
-        $cmd  = $this->builder->buildItemCommand($item);
-        $this->assertStringStartsWith('!', $cmd);
+        $this->assertSame('@PROMO', $this->b->comment('PROMO'));
+        $this->assertSame('ACOMENTARIO', $this->b->comment('COMENTARIO', FiscalCommandBuilder::COMMENT_CREDIT));
+        $this->assertSame('BCOMENTARIO', $this->b->comment('COMENTARIO', FiscalCommandBuilder::COMMENT_DEBIT));
     }
 
-    /** @test */
-    public function item_command_for_exento_starts_with_space(): void
+    public function test_discounts_match_manual(): void
     {
-        $item = new FiscalItem('Producto Exento', 50.00, 2.0, FiscalItem::TAX_EXENTO);
-        $cmd  = $this->builder->buildItemCommand($item);
-        $this->assertStringStartsWith(' ', $cmd); // 0x20
+        $this->assertSame('p-1000', $this->b->discountPercent(10.0));
+        $this->assertSame('q-000001000', $this->b->discountAmount(10.0));
     }
 
-    /** @test */
-    public function item_command_for_reducida_starts_with_double_quote(): void
+    public function test_invalid_discount_percent_is_rejected(): void
     {
-        $item = new FiscalItem('Alimento Basico', 30.00, 1.0, FiscalItem::TAX_REDUCIDA);
-        $cmd  = $this->builder->buildItemCommand($item);
-        $this->assertStringStartsWith('"', $cmd);
+        $this->expectException(InvalidArgumentException::class);
+        $this->b->discountPercent(100.0);
     }
 
-    /** @test */
-    public function item_command_for_adicional_starts_with_hash(): void
+    public function test_single_payment_is_direct_without_igtf(): void
     {
-        $item = new FiscalItem('Articulo Lujo', 500.00, 1.0, FiscalItem::TAX_ADICIONAL);
-        $cmd  = $this->builder->buildItemCommand($item);
-        $this->assertStringStartsWith('#', $cmd);
+        $this->assertSame(['101'], $this->b->payments([new FiscalPayment('01', 100.0)], false));
     }
 
-    /** @test */
-    public function item_command_contains_at_separated_name_qty_price(): void
+    public function test_single_payment_with_igtf_adds_199(): void
     {
-        $item = new FiscalItem('COCA COLA 2L', 15.50, 3.0, FiscalItem::TAX_GENERAL);
-        $cmd  = $this->builder->buildItemCommand($item);
-
-        // Format: !{name}@{qty}@{price}
-        $this->assertStringContainsString('@3.000@15.50', $cmd);
+        $this->assertSame(['122', '199'], $this->b->payments([new FiscalPayment('22', 100.0)], true));
     }
 
-    /** @test */
-    public function item_command_truncates_name_to_max_length(): void
+    public function test_mixed_payments_follow_manual_example(): void
     {
-        $item = new FiscalItem(str_repeat('X', 50), 10.00, 1.0);
-        $cmd  = $this->builder->buildItemCommand($item, maxNameLength: 20);
+        // Manual 14.2: partial 01 (20.62), partial 05... direct 22, then 199
+        $lines = $this->b->payments([
+            new FiscalPayment('01', 20.62),
+            new FiscalPayment('11', 51.00),
+            new FiscalPayment('22', 103.00),
+        ], true);
 
-        // Tax char + 20 name chars + @qty@price
-        $parts = explode('@', substr($cmd, 1)); // remove tax char
-        $this->assertLessThanOrEqual(20, strlen($parts[0]));
+        $this->assertSame(['201000000002062', '211000000005100', '122', '199'], $lines);
     }
 
-    /** @test */
-    public function item_command_allows_longer_name_for_pp9(): void
+    public function test_payment_media_is_validated(): void
     {
-        $item = new FiscalItem(str_repeat('Z', 50), 10.00, 1.0);
-        $cmd  = $this->builder->buildItemCommand($item, maxNameLength: 40);
-
-        $parts = explode('@', substr($cmd, 1));
-        $this->assertLessThanOrEqual(40, strlen($parts[0]));
-        $this->assertGreaterThan(20, strlen($parts[0])); // PP9 allows more
+        $this->expectException(InvalidArgumentException::class);
+        $this->b->payments([new FiscalPayment('99', 1.0)], false);
     }
 
-    // =========================================================================
-    // buildCreditItemCommand / buildDebitItemCommand
-    // =========================================================================
-
-    /** @test */
-    public function credit_item_general_starts_with_d1(): void
+    public function test_payments_cannot_be_empty(): void
     {
-        $item = new FiscalItem('Devolucion Producto', 100.00, 1.0, FiscalItem::TAX_GENERAL);
-        $cmd  = $this->builder->buildCreditItemCommand($item);
-        $this->assertStringStartsWith('d1', $cmd);
+        $this->expectException(InvalidArgumentException::class);
+        $this->b->payments([], false);
     }
 
-    /** @test */
-    public function credit_item_exento_starts_with_d0(): void
+    public function test_reports_and_status(): void
     {
-        $item = new FiscalItem('Devolucion Exenta', 50.00, 1.0, FiscalItem::TAX_EXENTO);
-        $cmd  = $this->builder->buildCreditItemCommand($item);
-        $this->assertStringStartsWith('d0', $cmd);
-    }
-
-    /** @test */
-    public function debit_item_general_uses_tick1_prefix(): void
-    {
-        $item = new FiscalItem('Cargo Extra', 200.00, 1.0, FiscalItem::TAX_GENERAL);
-        $cmd  = $this->builder->buildDebitItemCommand($item);
-        $this->assertStringStartsWith("'1", $cmd);
-    }
-
-    // =========================================================================
-    // buildDiscountCommand
-    // =========================================================================
-
-    /** @test */
-    public function discount_command_starts_with_M(): void
-    {
-        $cmd = $this->builder->buildDiscountCommand(10.0);
-        $this->assertStringStartsWith('M', $cmd);
-    }
-
-    /** @test */
-    public function discount_command_contains_percentage(): void
-    {
-        $cmd = $this->builder->buildDiscountCommand(15.5, 'OFERTA');
-        $this->assertStringContainsString('15.50', $cmd);
-    }
-
-    // =========================================================================
-    // buildSubtotalCommand
-    // =========================================================================
-
-    /** @test */
-    public function subtotal_command_is_uppercase_T(): void
-    {
-        $this->assertSame('T', $this->builder->buildSubtotalCommand());
-    }
-
-    // =========================================================================
-    // buildPaymentCommand
-    // =========================================================================
-
-    /** @test */
-    public function payment_command_without_igtf_starts_with_1(): void
-    {
-        $payment = new FiscalPayment(FiscalPayment::MEDIA_EFECTIVO_VES, 500.00);
-        $cmd = $this->builder->buildPaymentCommand($payment, igtfEnabled: false);
-        $this->assertStringStartsWith('1', $cmd);
-        $this->assertStringNotContainsString('199', $cmd);
-    }
-
-    /** @test */
-    public function payment_command_with_igtf_starts_with_199(): void
-    {
-        $payment = new FiscalPayment(FiscalPayment::MEDIA_EFECTIVO_USD, 500.00);
-        $cmd = $this->builder->buildPaymentCommand($payment, igtfEnabled: true);
-        $this->assertStringStartsWith('199', $cmd);
-    }
-
-    /** @test */
-    public function payment_command_contains_media_code_and_amount(): void
-    {
-        $payment = new FiscalPayment(FiscalPayment::MEDIA_TRANSFERENCIA_VES, 1234.56);
-        $cmd = $this->builder->buildPaymentCommand($payment, igtfEnabled: false);
-        $this->assertStringContainsString('04', $cmd); // media code
-        $this->assertStringContainsString('1234.56', $cmd); // amount
-    }
-
-    // =========================================================================
-    // buildXReportCommand / buildZReportCommand
-    // =========================================================================
-
-    /** @test */
-    public function x_report_command_is_uppercase_I(): void
-    {
-        $this->assertSame('I', $this->builder->buildXReportCommand());
-    }
-
-    /** @test */
-    public function z_report_command_is_uppercase_Z(): void
-    {
-        $this->assertSame('Z', $this->builder->buildZReportCommand());
-    }
-
-    // =========================================================================
-    // FiscalItem value object
-    // =========================================================================
-
-    /** @test */
-    public function fiscal_item_calculates_line_total(): void
-    {
-        $item = new FiscalItem('Producto', 100.00, 3.0);
-        $this->assertSame(300.0, $item->lineTotal());
-    }
-
-    /** @test */
-    public function fiscal_item_calculates_discount_amount(): void
-    {
-        $item = new FiscalItem('Producto', 100.00, 2.0, FiscalItem::TAX_GENERAL, 10.0);
-        $this->assertSame(20.0, $item->discountAmount());
-    }
-
-    /** @test */
-    public function fiscal_item_calculates_net_total_after_discount(): void
-    {
-        $item = new FiscalItem('Producto', 100.00, 2.0, FiscalItem::TAX_GENERAL, 10.0);
-        $this->assertSame(180.0, $item->netTotal());
-    }
-
-    /** @test */
-    public function fiscal_item_identifies_exempt_tax_type(): void
-    {
-        $exento = new FiscalItem('Exento', 50.00, 1.0, FiscalItem::TAX_EXENTO);
-        $general = new FiscalItem('General', 50.00, 1.0, FiscalItem::TAX_GENERAL);
-
-        $this->assertTrue($exento->isExempt());
-        $this->assertFalse($general->isExempt());
-    }
-
-    // =========================================================================
-    // FiscalPayment value object
-    // =========================================================================
-
-    /** @test */
-    public function foreign_currency_payment_is_identified_correctly(): void
-    {
-        $ves = new FiscalPayment(FiscalPayment::MEDIA_EFECTIVO_VES, 100.00);
-        $usd = new FiscalPayment(FiscalPayment::MEDIA_EFECTIVO_USD, 100.00);
-
-        $this->assertFalse($ves->isForeignCurrency());
-        $this->assertTrue($usd->isForeignCurrency());
-    }
-
-    /** @test */
-    public function zelle_payment_is_foreign_currency(): void
-    {
-        $zelle = new FiscalPayment(FiscalPayment::MEDIA_ZELLE, 50.00);
-        $this->assertTrue($zelle->isForeignCurrency());
-    }
-
-    /** @test */
-    public function usdt_payment_is_foreign_currency(): void
-    {
-        $usdt = new FiscalPayment(FiscalPayment::MEDIA_CRIPTO, 25.00);
-        $this->assertTrue($usdt->isForeignCurrency());
+        $this->assertSame('I0X', $this->b->xReport());
+        $this->assertSame('I0Z', $this->b->zReport());
+        $this->assertSame('S1', $this->b->statusRequest());
+        $this->assertSame('3', $this->b->subtotal());
     }
 }

@@ -24,7 +24,12 @@ class SaleReturn extends Model
         'approved_by',
         'status',
         'requested_at',
-        'approved_at'
+        'approved_at',
+        'fiscal_number',
+        'fiscal_serial',
+        'fiscal_z_number',
+        'fiscal_datetime',
+        'fiscal_status',
     ];
 
     public function collectionSheet()

@@ -5,48 +5,29 @@ namespace App\Services\Fiscal\Drivers;
 use App\Services\Fiscal\ValueObjects\FiscalResponse;
 
 /**
- * Contract that every fiscal printer driver must implement.
+ * Contract for every fiscal printer transport (local exe, remote agent, TCP, fake).
  *
- * All drivers communicate via the TFHKA trama protocol:
- * STX(0x02) + DATA + ETX(0x03) + LRC(XOR of DATA+ETX)
- * When using high-level APIs (IntTFHKA / TfhkaNet / TCP), only DATA is sent.
- *
- * Reference: Manual de Protocolos y Comandos Venezuela V8.5.0 (2022)
+ * Drivers move command LINES (library format, see FiscalCommandBuilder) to the
+ * printer; framing (STX/ETX/LRC) is handled by the underlying SDK.
  */
 interface FiscalPrinterDriverInterface
 {
-    /**
-     * Send a raw DATA string to the printer and return the response.
-     * The driver is responsible for framing (STX/ETX/LRC) if needed.
-     *
-     * @param  string  $data  Raw command DATA (e.g. "T0100000000" for open invoice)
-     * @return FiscalResponse
-     */
-    public function send(string $data): FiscalResponse;
+    /** Send a single command (e.g. "I0X"). */
+    public function send(string $command): FiscalResponse;
 
     /**
-     * Read the S1 status register (last invoice number, serial, Z number).
-     * Must be called after printing to persist fiscal data in DB.
+     * Send many command lines sequentially, stopping at the first failure.
+     * The response `fields['sent']` holds how many lines were accepted.
      *
-     * @return FiscalResponse
+     * @param string[] $commands
      */
-    public function readS1(): FiscalResponse;
+    public function sendBatch(array $commands): FiscalResponse;
 
-    /**
-     * Read the S2 status register (subtotals, payment breakdown).
-     * Must be called between partial payments for rounding reconciliation.
-     *
-     * @return FiscalResponse
-     */
-    public function readS2(): FiscalResponse;
+    /** Read a status register (S1..S6). Raw string is in FiscalResponse::$raw. */
+    public function readStatus(int $n = 1): FiscalResponse;
 
-    /**
-     * Check if the driver is currently connected / reachable.
-     */
+    /** True if the printer answers on the configured port. */
     public function isConnected(): bool;
 
-    /**
-     * Return the driver identifier string (e.g. 'intTfhka', 'tfhkaNet', 'tcp', 'fake').
-     */
     public function driverName(): string;
 }
