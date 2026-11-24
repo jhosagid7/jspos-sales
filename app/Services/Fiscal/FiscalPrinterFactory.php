@@ -42,7 +42,7 @@ class FiscalPrinterFactory
         }
 
         $driverType = $deviceAuth?->fiscal_printer_driver ?? 'intTfhka';
-        $port = $deviceAuth?->fiscal_printer_port ?? 'COM1';
+        $port = $deviceAuth?->fiscal_printer_port ?? config('services.fiscal.port', 'COM99');
 
         if ($driverType === 'fake') {
             return new FakeDriver();

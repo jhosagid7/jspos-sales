@@ -19,11 +19,16 @@ class DeviceAuthorization extends Model
         'is_network',
         'printer_user',
         'printer_password',
+        'fiscal_printer_enabled',
+        'fiscal_printer_driver',
+        'fiscal_printer_port',
+        'fiscal_printer_model',
     ];
 
     protected $casts = [
         'last_accessed_at' => 'datetime',
         'is_network' => 'boolean',
+        'fiscal_printer_enabled' => 'boolean',
     ];
 
     public function getIsOnlineAttribute()

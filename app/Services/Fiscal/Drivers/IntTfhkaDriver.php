@@ -89,7 +89,11 @@ final class IntTfhkaDriver implements FiscalPrinterDriverInterface
 
             try {
                 $this->exec(['UploadStatusCmd(S' . $n, $file]);
-                $raw = is_file($path) ? $this->firstLine((string) file_get_contents($path)) : '';
+                $raw = '';
+                if (is_file($path)) {
+                    $lines = file($path, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
+                    $raw = count($lines) > 1 ? implode(' ', array_map('trim', $lines)) : $this->firstLine((string) file_get_contents($path));
+                }
             } finally {
                 @unlink($path);
             }
