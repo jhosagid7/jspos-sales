@@ -42,6 +42,7 @@ class Product extends Model
         'status',
         'cost',
         'price',
+        'tax_type',
         'manage_stock',
         'stock_qty',
         'low_stock',

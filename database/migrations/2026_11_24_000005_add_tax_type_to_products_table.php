@@ -22,7 +22,7 @@ return new class extends Migration
     {
         Schema::table('products', function (Blueprint $table) {
             if (!Schema::hasColumn('products', 'tax_type')) {
-                $table->string('tax_type', 20)->nullable()->after('vat')
+                $table->string('tax_type', 20)->nullable()
                     ->comment('exento | general | reducida | adicional — null = inherit global vat setting');
             }
         });
