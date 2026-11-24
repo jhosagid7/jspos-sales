@@ -46,6 +46,11 @@ class ConfigurationService
         return (bool) (self::getConfig()?->enable_forma_libre ?? false);
     }
 
+    public static function isFiscalPrinterEnabled(): bool
+    {
+        return (bool) (self::getConfig()?->fiscal_printer_enabled ?? false);
+    }
+
     public static function getFormaLibreTemplate(): string
     {
         return self::getConfig()?->forma_libre_template ?? 'bucaros';

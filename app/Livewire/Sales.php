@@ -84,6 +84,7 @@ class Sales extends Component
     public $document_type = 'invoice'; // 'invoice' (Factura Fiscal) or 'delivery_note' (Nota de Entrega)
     public $fiscal_number = ''; // N° de Factura manual de la forma libre
     public $enableFormaLibre = false;
+    public $enableFiscalPrinter = false;
     public $formaLibreTemplate = 'bucaros';
     public $pagination = 5, $status;
     public $confirmation_code = null;
@@ -1170,6 +1171,7 @@ class Sales extends Component
         $this->isMulticurrency = $this->config ? $this->config->isMulticurrency() : true;
         $this->salesShowDiscountPercentage = (bool) ($this->config->sales_show_discount_percentage ?? false);
         $this->enableFormaLibre = ConfigurationService::isFormaLibreEnabled();
+        $this->enableFiscalPrinter = ConfigurationService::isFiscalPrinterEnabled();
         $this->formaLibreTemplate = ConfigurationService::getFormaLibreTemplate();
         
         // Cache permissions to avoid N+1 in loops
@@ -5349,6 +5351,26 @@ class Sales extends Component
             session()->forget('remainingAmount');
             session()->forget('change');
             session()->forget('totalCartAtPayment');
+
+            // Automatic Fiscal Printing (if document_type is invoice and fiscal printer enabled)
+            if ($docType === 'invoice' && ConfigurationService::isFiscalPrinterEnabled()) {
+                try {
+                    $fiscalService = \App\Services\Fiscal\FiscalPrinterFactory::make();
+                    if ($fiscalService) {
+                        $sale->loadMissing(['details.product', 'customer', 'paymentDetails']);
+                        $itemMapper = new \App\Services\Fiscal\FiscalItemMapper();
+                        $fiscalItems = $itemMapper->fromSale($sale);
+                        $fiscalPayments = \App\Services\Fiscal\FiscalPrinterFactory::mapPayments($sale->paymentDetails);
+                        
+                        $fiscalService->printInvoice($sale, $fiscalItems, $fiscalPayments);
+                    }
+                } catch (\Throwable $fe) {
+                    \Illuminate\Support\Facades\Log::error("Error emitiendo factura fiscal: " . $fe->getMessage(), [
+                        'sale_id' => $sale->id
+                    ]);
+                    $this->dispatch('noty', msg: "Alerta Fiscal: No se pudo imprimir la factura fiscal en la máquina. " . $fe->getMessage());
+                }
+            }
 
             // Automatic Ticket Printing via ESC/POS connector
             $config = \App\Models\Configuration::first();
