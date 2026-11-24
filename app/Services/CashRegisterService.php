@@ -214,6 +214,40 @@ class CashRegisterService
     }
 
     /**
+     * Registrar movimiento por devolución de venta (egreso de efectivo de caja).
+     */
+    public function recordReturnMovement($cashRegisterId, $saleId, $currencyCode, $amount, $description = null)
+    {
+        $currency = Currency::where('code', $currencyCode)->first();
+        if (!$currency) {
+            $currency = Currency::where('is_primary', true)->firstOrFail();
+            $currencyCode = $currency->code;
+        }
+
+        $primaryCurrency = Currency::where('is_primary', true)->first();
+
+        $absAmount = abs((float) $amount);
+        $amountInPrimary = -$absAmount;
+        if (!$currency->is_primary && $currency->exchange_rate > 0) {
+            $amountInPrimary = -($absAmount / $currency->exchange_rate * ($primaryCurrency?->exchange_rate ?? 1));
+        }
+
+        $currentBalance = $this->getBalance($cashRegisterId, $currencyCode);
+
+        return CashMovement::create([
+            'cash_register_id' => $cashRegisterId,
+            'sale_id' => $saleId,
+            'type' => 'sale_return',
+            'currency_code' => $currencyCode,
+            'amount' => -$absAmount, // Negativo porque es salida/egreso de caja
+            'amount_in_primary_currency' => $amountInPrimary,
+            'exchange_rate' => $currency->exchange_rate,
+            'balance_after' => $currentBalance - $absAmount,
+            'description' => $description
+        ]);
+    }
+
+    /**
      * Cerrar caja
      */
     public function closeRegister($cashRegisterId, array $countedAmounts, $notes = null)

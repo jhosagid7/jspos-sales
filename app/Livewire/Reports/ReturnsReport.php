@@ -186,13 +186,17 @@ class ReturnsReport extends Component
             $customer->save();
         } 
         elseif ($saleReturn->refund_method === 'cash' && $saleReturn->cash_register_id) {
-            \App\Models\CashMovement::create([
-                'cash_register_id' => $saleReturn->cash_register_id,
-                'user_id' => auth()->id(),
-                'type' => 'expense',
-                'amount' => $saleReturn->total_returned,
-                'concept' => 'Devolución Factura #' . ($saleReturn->sale->invoice_number ?? $saleReturn->sale_id),
-            ]);
+            $currencyCode = $saleReturn->sale?->primary_currency_code 
+                ?? \App\Models\Currency::where('is_primary', true)->value('code') 
+                ?? 'USD';
+
+            app(\App\Services\CashRegisterService::class)->recordReturnMovement(
+                $saleReturn->cash_register_id,
+                $saleReturn->sale_id,
+                $currencyCode,
+                $saleReturn->total_returned,
+                'Devolución Factura #' . ($saleReturn->sale->invoice_number ?? $saleReturn->sale_id)
+            );
         }
         
         if ($saleReturn->refund_method === 'debt_reduction') {

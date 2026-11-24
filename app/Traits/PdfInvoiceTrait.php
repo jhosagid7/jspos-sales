@@ -82,7 +82,12 @@ trait PdfInvoiceTrait
                         'operador'        => $sale->user->name,
                         'footer_code'    => $footerData['footer_code'],
                         'footer_data'    => $footerData,
-                        'cloning_qr'     => \DNS2D::getBarcodeHTML("SALE:{$sale->id}", "QRCODE", 2, 2) 
+                        'cloning_qr'     => \DNS2D::getBarcodeHTML("SALE:{$sale->id}", "QRCODE", 2, 2),
+                        'is_fiscal'      => (bool) $sale->is_fiscal,
+                        'fiscal_number'  => $sale->fiscal_number,
+                        'fiscal_serial'  => $sale->fiscal_serial,
+                        'fiscal_z_number' => $sale->fiscal_z_number,
+                        'fiscal_datetime' => $sale->fiscal_datetime,
                     ],
                 ]);
 
@@ -265,7 +270,12 @@ trait PdfInvoiceTrait
                         'operador'        => $sale->user->name,
                         'footer_code'    => $footerData['footer_code'],
                         'footer_data'    => $footerData,
-                        'cloning_qr'     => \DNS2D::getBarcodeHTML("SALE:{$sale->id}", "QRCODE", 2, 2) 
+                        'cloning_qr'     => \DNS2D::getBarcodeHTML("SALE:{$sale->id}", "QRCODE", 2, 2),
+                        'is_fiscal'      => (bool) $sale->is_fiscal,
+                        'fiscal_number'  => $sale->fiscal_number,
+                        'fiscal_serial'  => $sale->fiscal_serial,
+                        'fiscal_z_number' => $sale->fiscal_z_number,
+                        'fiscal_datetime' => $sale->fiscal_datetime,
                     ],
                 ]);
 
@@ -408,7 +418,12 @@ trait PdfInvoiceTrait
                         'operador'        => $sale->user->name,
                         'footer_code'    => $footerData['footer_code'],
                         'footer_data'    => $footerData,
-                        'cloning_qr'     => \DNS2D::getBarcodeHTML("SALE:{$sale->id}", "QRCODE", 2, 2) 
+                        'cloning_qr'     => \DNS2D::getBarcodeHTML("SALE:{$sale->id}", "QRCODE", 2, 2),
+                        'is_fiscal'      => (bool) $sale->is_fiscal,
+                        'fiscal_number'  => $sale->fiscal_number,
+                        'fiscal_serial'  => $sale->fiscal_serial,
+                        'fiscal_z_number' => $sale->fiscal_z_number,
+                        'fiscal_datetime' => $sale->fiscal_datetime,
                     ],
                 ]);
 
@@ -579,7 +594,12 @@ trait PdfInvoiceTrait
                         'operador'        => $sale->user->name,
                         'footer_code'    => $footerData['footer_code'],
                         'footer_data'    => $footerData,
-                        'cloning_qr'     => \DNS2D::getBarcodeHTML("SALE:{$sale->id}", "QRCODE", 2, 2) 
+                        'cloning_qr'     => \DNS2D::getBarcodeHTML("SALE:{$sale->id}", "QRCODE", 2, 2),
+                        'is_fiscal'      => (bool) $sale->is_fiscal,
+                        'fiscal_number'  => $sale->fiscal_number,
+                        'fiscal_serial'  => $sale->fiscal_serial,
+                        'fiscal_z_number' => $sale->fiscal_z_number,
+                        'fiscal_datetime' => $sale->fiscal_datetime,
                     ],
                 ]);
 

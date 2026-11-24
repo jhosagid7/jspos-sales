@@ -104,10 +104,15 @@ class FiscalPrinterFactory
      * 
      * @param iterable<SalePaymentDetail> $paymentDetails
      * @param float $toVesRate Default exchange rate to convert divisas to VES for fiscal printer
+     * @param bool|null $isSpecialTaxpayer When null, automatically loaded from Configuration
      * @return FiscalPayment[]
      */
-    public static function mapPayments(iterable $paymentDetails, float $toVesRate = 1.0): array
+    public static function mapPayments(iterable $paymentDetails, float $toVesRate = 1.0, ?bool $isSpecialTaxpayer = null): array
     {
+        if ($isSpecialTaxpayer === null) {
+            $isSpecialTaxpayer = (bool) (\App\Models\Configuration::value('is_special_taxpayer') ?? false);
+        }
+
         $payments = [];
 
         foreach ($paymentDetails as $detail) {
@@ -125,7 +130,7 @@ class FiscalPrinterFactory
                 continue;
             }
 
-            $mediaCode = self::resolveMediaCode($method, $currency);
+            $mediaCode = self::resolveMediaCode($method, $currency, $isSpecialTaxpayer);
             $payments[] = new FiscalPayment($mediaCode, $amountVes);
         }
 
@@ -134,23 +139,26 @@ class FiscalPrinterFactory
 
     /**
      * Resolve TFHKA 2-digit media code from method and currency.
+     * When $isSpecialTaxpayer is false (ordinary taxpayer), fiscal printers do not accept
+     * foreign media codes (20-24) without Flag 50, so payments must be routed through
+     * standard media codes (01 Efectivo, 02 Débito, 04 Transferencia).
      */
-    public static function resolveMediaCode(string $method, string $currency): string
+    public static function resolveMediaCode(string $method, string $currency, bool $isSpecialTaxpayer = false): string
     {
         $isForeign = !in_array($currency, ['VED', 'VES', 'BS', 'BS.']);
 
-        if ($isForeign) {
+        if ($isForeign && $isSpecialTaxpayer) {
             if (str_contains($method, 'zelle')) return FiscalPayment::MEDIA_ZELLE;
             if (str_contains($method, 'usdt') || str_contains($method, 'crypto')) return FiscalPayment::MEDIA_CRIPTO;
             if (str_contains($method, 'tarjeta') || str_contains($method, 'card')) return FiscalPayment::MEDIA_TARJETA_USD;
             return FiscalPayment::MEDIA_EFECTIVO_USD;
         }
 
-        // Local currency (VES)
-        if (str_contains($method, 'tarjeta') || str_contains($method, 'debito') || str_contains($method, 'punto')) {
+        // Local currency (VES) or ordinary taxpayer processing
+        if (str_contains($method, 'tarjeta') || str_contains($method, 'debito') || str_contains($method, 'punto') || str_contains($method, 'card')) {
             return FiscalPayment::MEDIA_DEBITO_VES;
         }
-        if (str_contains($method, 'pago_movil') || str_contains($method, 'transfer') || str_contains($method, 'bank')) {
+        if (str_contains($method, 'pago_movil') || str_contains($method, 'transfer') || str_contains($method, 'bank') || str_contains($method, 'zelle')) {
             return FiscalPayment::MEDIA_TRANSFERENCIA_VES;
         }
 

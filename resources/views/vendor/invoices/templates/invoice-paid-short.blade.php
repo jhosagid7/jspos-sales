@@ -338,9 +338,22 @@
                         </h4>
                     </td>
                     <td class="clearfix pl-0 border-0 invoice-details"  width="15%">
-                        <p > <strong class="remission-title text-green">{{ $invoice->getSerialNumber() }}</strong>
-                        <b> <br>{{ __('invoices::invoice.remission') }}</b>
-                        </p>
+                        @if(!empty($invoice->seller->custom_fields['is_fiscal']))
+                            <p>
+                                <strong class="remission-title text-primary">{{ $invoice->getSerialNumber() }}</strong>
+                                <b><br>FACTURA FISCAL</b>
+                                @if(!empty($invoice->seller->custom_fields['fiscal_number']) && $invoice->seller->custom_fields['fiscal_number'] !== '00000000')
+                                    <br><small style="font-size: 8px; color: #1e40af; font-weight: bold;">N°: {{ $invoice->seller->custom_fields['fiscal_number'] }}</small>
+                                @endif
+                                @if(!empty($invoice->seller->custom_fields['fiscal_serial']))
+                                    <br><small style="font-size: 8px; color: #555;">SERIAL: {{ $invoice->seller->custom_fields['fiscal_serial'] }}</small>
+                                @endif
+                            </p>
+                        @else
+                            <p > <strong class="remission-title text-green">{{ $invoice->getSerialNumber() }}</strong>
+                            <b> <br>{{ __('invoices::invoice.remission') }}</b>
+                            </p>
+                        @endif
                     </td>
                 </tr>
             </tbody>

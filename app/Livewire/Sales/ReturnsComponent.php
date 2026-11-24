@@ -327,17 +327,67 @@ class ReturnsComponent extends Component
             $customer->save();
         } 
         elseif ($saleReturn->refund_method === 'cash' && $saleReturn->cash_register_id) {
-            \App\Models\CashMovement::create([
-                'cash_register_id' => $saleReturn->cash_register_id,
-                'user_id' => auth()->id(),
-                'type' => 'expense',
-                'amount' => $saleReturn->total_returned,
-                'concept' => 'Devolución Factura #' . ($saleReturn->sale->invoice_number ?? $saleReturn->sale_id),
-            ]);
+            $currencyCode = $saleReturn->sale?->primary_currency_code 
+                ?? \App\Models\Currency::where('is_primary', true)->value('code') 
+                ?? 'USD';
+
+            app(\App\Services\CashRegisterService::class)->recordReturnMovement(
+                $saleReturn->cash_register_id,
+                $saleReturn->sale_id,
+                $currencyCode,
+                $saleReturn->total_returned,
+                'Devolución Factura #' . ($saleReturn->sale->invoice_number ?? $saleReturn->sale_id)
+            );
         }
         
         if ($saleReturn->refund_method === 'debt_reduction') {
             $saleReturn->sale->checkSettlement();
+        }
+
+        // Automatic Fiscal Credit Note emission (if original sale was fiscal and fiscal printer active)
+        if ($saleReturn->sale && $saleReturn->sale->is_fiscal && \App\Services\ConfigurationService::isFiscalPrinterEnabled()) {
+            // Only attempt fiscal credit note if original sale has valid fiscal data (not null, not 00000000)
+            if (!empty($saleReturn->sale->fiscal_number) && $saleReturn->sale->fiscal_number !== '00000000' && !empty($saleReturn->sale->fiscal_serial) && !empty($saleReturn->sale->fiscal_datetime)) {
+                try {
+                    $fiscalService = \App\Services\Fiscal\FiscalPrinterFactory::make();
+                    if ($fiscalService) {
+                        $itemMapper = new \App\Services\Fiscal\FiscalItemMapper();
+                        $fiscalItems = [];
+
+                        foreach ($saleReturn->details as $returnDetail) {
+                            $product = $returnDetail->product;
+                            $saleDetail = $returnDetail->saleDetail ?? \App\Models\SaleDetail::find($returnDetail->sale_detail_id);
+                            $unitPrice = $saleDetail ? (float)$saleDetail->sale_price : 0.0;
+
+                            if ($unitPrice > 0) {
+                                $fiscalItems[] = $itemMapper->mapLine(
+                                    $product?->name ?? 'PRODUCTO',
+                                    $unitPrice,
+                                    (float) $returnDetail->quantity_returned,
+                                    $product?->tax_type
+                                );
+                            }
+                        }
+
+                        if (!empty($fiscalItems)) {
+                            $refundMethod = $saleReturn->refund_method === 'cash' ? 'cash' : 'transfer';
+                            $fiscalPayments = [
+                                new \App\Services\Fiscal\ValueObjects\FiscalPayment(
+                                    \App\Services\Fiscal\FiscalPrinterFactory::resolveMediaCode($refundMethod, 'VES'),
+                                    (float) $saleReturn->total_returned
+                                )
+                            ];
+
+                            $fiscalService->printCreditNote($saleReturn, $fiscalItems, $fiscalPayments);
+                        }
+                    }
+                } catch (\Throwable $fe) {
+                    \Illuminate\Support\Facades\Log::error("Error emitiendo Nota de Crédito fiscal: " . $fe->getMessage(), [
+                        'return_id' => $saleReturn->id,
+                        'sale_id' => $saleReturn->sale_id
+                    ]);
+                }
+            }
         }
 
         // Reintegrar capas FIFO consumidas
