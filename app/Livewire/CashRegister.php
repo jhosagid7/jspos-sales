@@ -243,6 +243,46 @@ class CashRegister extends Component
         $this->dispatch('show-modal', 'cashRegisterDetailsModal');
     }
 
+    public function printFiscalX()
+    {
+        try {
+            $service = \App\Services\Fiscal\FiscalPrinterFactory::make();
+            if (!$service) {
+                $this->addError('general', 'La impresora fiscal no está habilitada o configurada.');
+                return;
+            }
+
+            $response = $service->printXReport();
+            if ($response->success) {
+                $this->dispatch('noty', msg: 'Reporte X emitido exitosamente en la impresora fiscal.');
+            } else {
+                $this->addError('general', 'Error emitiendo Reporte X: ' . ($response->error ?? 'Sin respuesta'));
+            }
+        } catch (\Throwable $e) {
+            $this->addError('general', 'Excepción fiscal: ' . $e->getMessage());
+        }
+    }
+
+    public function printFiscalZ()
+    {
+        try {
+            $service = \App\Services\Fiscal\FiscalPrinterFactory::make();
+            if (!$service) {
+                $this->addError('general', 'La impresora fiscal no está habilitada o configurada.');
+                return;
+            }
+
+            $response = $service->printZReport();
+            if ($response->success) {
+                $this->dispatch('noty', msg: 'Reporte Z (Cierre Diario) emitido exitosamente.');
+            } else {
+                $this->addError('general', 'Error emitiendo Reporte Z: ' . ($response->error ?? 'Sin respuesta'));
+            }
+        } catch (\Throwable $e) {
+            $this->addError('general', 'Excepción fiscal: ' . $e->getMessage());
+        }
+    }
+
     public function render()
     {
         $history = [];

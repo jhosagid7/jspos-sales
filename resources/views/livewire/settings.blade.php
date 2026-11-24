@@ -2227,6 +2227,59 @@ Departamento de Control de Calidad y Manufactura
                                         </div>
                                     </div>
 
+                                    {{-- Configuración de Impresora Fiscal (TFHKA SENIAT) --}}
+                                    <div class="col-12">
+                                        <div class="card shadow-sm border-0 mb-3 border-start border-4 border-warning">
+                                            <div class="card-header bg-light py-2 px-3 border-bottom d-flex align-items-center justify-content-between">
+                                                <div class="d-flex align-items-center gap-2">
+                                                    <i class="fa fa-print text-warning fs-5"></i>
+                                                    <div>
+                                                        <h6 class="mb-0 fw-bold text-dark">Impresora Fiscal SENIAT (The Factory HKA)</h6>
+                                                        <small class="text-muted">Homologación fiscal venezolana directa para tickets y notas de crédito/débito</small>
+                                                    </div>
+                                                </div>
+                                                <span class="badge {{ $fiscalPrinterEnabled ? 'bg-success' : 'bg-secondary' }} text-white">
+                                                    {{ $fiscalPrinterEnabled ? 'Habilitada' : 'Deshabilitada' }}
+                                                </span>
+                                            </div>
+                                            <div class="card-body p-3">
+                                                <div class="row g-3">
+                                                    <div class="col-md-4">
+                                                        <div class="custom-control custom-switch mb-2">
+                                                            <input type="checkbox" class="custom-control-input" id="fiscalPrinterSwitch" wire:model.live="fiscalPrinterEnabled">
+                                                            <label class="custom-control-label fw-bold" for="fiscalPrinterSwitch">Activar Impresora Fiscal</label>
+                                                        </div>
+                                                        <small class="text-muted d-block">
+                                                            Emite automáticamente comprobantes en la impresora fiscal conectada en las ventas y permite generar Reportes X y Z.
+                                                        </small>
+                                                    </div>
+
+                                                    <div class="col-md-4" @if(!$fiscalPrinterEnabled) style="opacity: 0.5; pointer-events: none;" @endif>
+                                                        <div class="custom-control custom-switch mb-2">
+                                                            <input type="checkbox" class="custom-control-input" id="specialTaxpayerSwitch" wire:model="isSpecialTaxpayer" @if(!$fiscalPrinterEnabled) disabled @endif>
+                                                            <label class="custom-control-label fw-bold" for="specialTaxpayerSwitch">Contribuyente Especial (IGTF 3%)</label>
+                                                        </div>
+                                                        <small class="text-muted d-block">
+                                                            Active si el SENIAT calificó este negocio como Sujeto Pasivo Especial. La máquina aplicará el recargo 3% IGTF a los pagos en divisas.
+                                                        </small>
+                                                    </div>
+
+                                                    <div class="col-md-4" @if(!$fiscalPrinterEnabled) style="opacity: 0.5; pointer-events: none;" @endif>
+                                                        <label class="form-label small fw-bold text-dark mb-1">Modelo de Impresora Fiscal:</label>
+                                                        <select class="form-control form-control-sm" wire:model="fiscalPrinterModel" @if(!$fiscalPrinterEnabled) disabled @endif>
+                                                            <option value="hka80">The Factory HKA-80 / Bixolon SRP-812</option>
+                                                            <option value="pp9">Aclas PP9 / PP9 Plus</option>
+                                                            <option value="pp9plus">Aclas PP9 Plus (Trama Extendida)</option>
+                                                        </select>
+                                                        <small class="text-muted d-block mt-1">
+                                                            Determina la longitud máxima del nombre del producto y soporte de notas de débito.
+                                                        </small>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
                                     {{-- 1. Factura de Venta Contado (Pagada) --}}
                                     <div class="col-12">
                                         <div class="card shadow-sm border-0 mb-0">

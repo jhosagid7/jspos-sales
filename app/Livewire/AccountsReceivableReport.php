@@ -1491,5 +1491,49 @@ class AccountsReceivableReport extends Component
         if ($saleReturn->refund_method === 'debt_reduction') {
             $saleReturn->sale->checkSettlement();
         }
+
+        // Automatic Fiscal Credit Note emission (if original sale was fiscal and fiscal printer active)
+        if ($saleReturn->sale && $saleReturn->sale->is_fiscal && \App\Services\ConfigurationService::isFiscalPrinterEnabled()) {
+            try {
+                $fiscalService = \App\Services\Fiscal\FiscalPrinterFactory::make();
+                if ($fiscalService) {
+                    $itemMapper = new \App\Services\Fiscal\FiscalItemMapper();
+                    $fiscalItems = [];
+
+                    foreach ($saleReturn->details as $returnDetail) {
+                        $product = $returnDetail->product;
+                        $saleDetail = $returnDetail->saleDetail ?? \App\Models\SaleDetail::find($returnDetail->sale_detail_id);
+                        $unitPrice = $saleDetail ? (float)$saleDetail->sale_price : 0.0;
+
+                        if ($unitPrice > 0) {
+                            $fiscalItems[] = $itemMapper->mapLine(
+                                $product?->name ?? 'PRODUCTO',
+                                $unitPrice,
+                                (float) $returnDetail->quantity_returned,
+                                $product?->tax_type
+                            );
+                        }
+                    }
+
+                    if (!empty($fiscalItems)) {
+                        // Refund payment mapping (default to 01 efectivo or method used)
+                        $refundMethod = $saleReturn->refund_method === 'cash' ? 'cash' : 'transfer';
+                        $fiscalPayments = [
+                            new \App\Services\Fiscal\ValueObjects\FiscalPayment(
+                                \App\Services\Fiscal\FiscalPrinterFactory::resolveMediaCode($refundMethod, 'VES'),
+                                (float) $saleReturn->total_returned
+                            )
+                        ];
+
+                        $fiscalService->printCreditNote($saleReturn, $fiscalItems, $fiscalPayments);
+                    }
+                }
+            } catch (\Throwable $fe) {
+                \Illuminate\Support\Facades\Log::error("Error emitiendo Nota de Crédito fiscal: " . $fe->getMessage(), [
+                    'return_id' => $saleReturn->id,
+                    'sale_id' => $saleReturn->sale_id
+                ]);
+            }
+        }
     }
 }

@@ -30,6 +30,11 @@ class Settings extends Component
     public $enableFormaLibre = false; // Habilitar Facturación en Forma Libre
     public $formaLibreTemplate = 'bucaros'; // Plantilla de Forma Libre seleccionada
 
+    // Impresora Fiscal (TFHKA SENIAT)
+    public $fiscalPrinterEnabled = false;
+    public $isSpecialTaxpayer = false;
+    public $fiscalPrinterModel = 'hka80';
+
     public $logo, $logo_preview; // Logo properties
     public $backupEmails; // Backup Emails
     public $purchasingCalculationMode, $purchasingCoverageDays; // Purchasing Intelligence
@@ -249,6 +254,11 @@ class Settings extends Component
             $this->enableFormaLibre = (bool) ($config->enable_forma_libre ?? false);
             $this->formaLibreTemplate = $config->forma_libre_template ?? 'bucaros';
 
+            // Fiscal Printer Settings
+            $this->fiscalPrinterEnabled = (bool) ($config->fiscal_printer_enabled ?? false);
+            $this->isSpecialTaxpayer = (bool) ($config->is_special_taxpayer ?? false);
+            $this->fiscalPrinterModel = $config->fiscal_printer_model ?? 'hka80';
+
             // Regional Terminology Settings
             $labels = is_array($config->custom_labels) ? $config->custom_labels : (json_decode($config->custom_labels, true) ?? []);
             $this->warehouseTerm = $labels['warehouse_term'] ?? 'deposito';
@@ -431,6 +441,9 @@ class Settings extends Component
                 'enable_workshop' => $this->enableWorkshop ? 1 : 0,
                 'enable_forma_libre' => $this->enableFormaLibre ? 1 : 0,
                 'forma_libre_template' => $this->formaLibreTemplate ?: 'bucaros',
+                'fiscal_printer_enabled' => $this->fiscalPrinterEnabled ? 1 : 0,
+                'is_special_taxpayer' => $this->isSpecialTaxpayer ? 1 : 0,
+                'fiscal_printer_model' => $this->fiscalPrinterModel ?: 'hka80',
                 'custom_labels' => array_merge(
                     is_array($currentConfig?->custom_labels) ? $currentConfig->custom_labels : (json_decode($currentConfig?->custom_labels ?? '[]', true) ?? []),
                     [

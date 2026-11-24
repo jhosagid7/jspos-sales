@@ -229,6 +229,29 @@
                                                             <textarea class="form-control form-control-sm mb-2" rows="3" wire:model="notes" placeholder="Notas de cierre..."></textarea>
                                                         </div>
                                                     </div>
+                                                    @if(\App\Services\ConfigurationService::isFiscalPrinterEnabled())
+                                                    <div class="card mb-3 border-warning">
+                                                        <div class="card-header bg-light py-2">
+                                                            <h6 class="mb-0 text-dark font-weight-bold">
+                                                                <i class="fas fa-print me-1 text-warning"></i> Reportes Fiscales (SENIAT)
+                                                            </h6>
+                                                        </div>
+                                                        <div class="card-body py-2">
+                                                            <p class="small text-muted mb-2">Comandos directos hacia la impresora fiscal conectada.</p>
+                                                            <div class="d-flex gap-2">
+                                                                <button type="button" wire:click="printFiscalX" class="btn btn-outline-warning btn-sm w-50">
+                                                                    <i class="fas fa-file-invoice me-1"></i> Reporte X (Parcial)
+                                                                </button>
+                                                                <button type="button" wire:click="printFiscalZ" 
+                                                                    onclick="confirm('¡ATENCIÓN! El Reporte Z cierra el día fiscal de forma irreversible en la memoria de la impresora. ¿Desea continuar?') || event.stopImmediatePropagation()" 
+                                                                    class="btn btn-outline-danger btn-sm w-50">
+                                                                    <i class="fas fa-file-invoice-dollar me-1"></i> Reporte Z (Cierre)
+                                                                </button>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    @endif
+
                                                     <button type="submit" class="btn btn-danger btn-lg w-100" onclick="confirm('¿Está seguro de cerrar la caja? Esta acción no se puede deshacer.') || event.stopImmediatePropagation()">
                                                         <i class="fas fa-lock me-2"></i> CERRAR CAJA Y FINALIZAR TURNO
                                                     </button>
